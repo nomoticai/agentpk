@@ -1,0 +1,11 @@
+spec_version: "1.0"
+name: "invalid-exec-type"
+version: "1.0.0"
+description: Execution type is not in the allowed set.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+execution:
+  type: always-running

@@ -1,0 +1,11 @@
+spec_version: "1.0"
+name: "invalid-language"
+version: "1.0.0"
+description: Runtime language is not in the allowed set.
+runtime:
+  language: cobol
+  language_version: "85"
+  entry_point: agent.cob
+  dependencies: requirements.txt
+execution:
+  type: on-demand

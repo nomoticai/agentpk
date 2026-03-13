@@ -1,0 +1,50 @@
+spec_version: "1.0"
+name: data-pipeline
+display_name: "Data Pipeline Agent"
+version: "0.1.0"
+description: "Extracts, transforms, and loads records on a daily schedule."
+author: "agentpk contributors"
+license: "MIT"
+tags:
+  - etl
+  - data
+  - pipeline
+
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: src/agent.py
+  entry_function: main
+  dependencies: requirements.txt
+
+capabilities:
+  tools:
+    - id: read_source_database
+      description: "Read records from the upstream source database."
+      scope: read
+      required: true
+      targets:
+        - "databases.source.*"
+    - id: write_destination_database
+      description: "Write transformed records to the destination data warehouse."
+      scope: write
+      required: true
+      targets:
+        - "databases.destination.*"
+    - id: notify_data_team
+      description: "Send a summary notification to the data engineering channel."
+      scope: write
+      required: false
+      targets:
+        - "notifications.data-team"
+
+execution:
+  type: scheduled
+  schedule: "0 2 * * *"
+  timezone: "UTC"
+  timeout_minutes: 120
+
+resources:
+  memory_mb: 1024
+  cpu_shares: 512
+  network: bidirectional

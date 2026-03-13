@@ -1,0 +1,17 @@
+spec_version: "1.0"
+name: "invalid-scope"
+version: "1.0.0"
+description: Tool declares an invalid scope value.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+capabilities:
+  tools:
+    - id: super-tool
+      description: A tool with an invalid scope
+      scope: superuser
+      required: true
+execution:
+  type: on-demand

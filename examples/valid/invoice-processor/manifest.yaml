@@ -1,0 +1,92 @@
+spec_version: "1.0"
+
+# Identity
+name: invoice-processor
+display_name: Invoice Processor
+version: "2.1.0"
+description: Processes vendor invoices and routes them for payment approval.
+author: platform-team@acme.com
+organization: ACME Corp
+license: proprietary
+tags:
+  - finance
+  - invoice
+  - accounts-payable
+
+# Runtime
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: src/agent.py
+  entry_function: run
+  dependencies: requirements.txt
+
+# Model preferences
+model:
+  agnostic: false
+  preferred: gpt-4o
+  minimum_context: 128000
+  alternatives:
+    - claude-3-5-sonnet-20241022
+
+# Framework
+framework:
+  name: langchain
+  version: ">=0.1.0"
+
+# Capabilities — what this agent can do and what it needs access to
+capabilities:
+  tools:
+    - id: read_invoices
+      description: Read invoice records from the AP database
+      scope: read
+      required: true
+      targets:
+        - "invoices.*"
+    - id: submit_for_approval
+      description: Submit an invoice for human approval
+      scope: write
+      required: true
+      targets:
+        - "approvals"
+      constraints:
+        max_amount_usd: 50000
+    - id: notify_team
+      description: Send Slack notification to finance team
+      scope: write
+      required: false
+
+# Permissions
+permissions:
+  data_classes:
+    - name: financial_records
+      access: read
+    - name: payment_systems
+      access: initiate_only
+  environments:
+    allowed:
+      - production
+      - staging
+    denied:
+      - development
+
+# Execution
+execution:
+  type: scheduled
+  schedule: "0 9 * * 1-5"
+  timezone: America/New_York
+  permitted_windows:
+    - days: [monday, tuesday, wednesday, thursday, friday]
+      hours: "07:00-20:00"
+      timezone: America/New_York
+  max_concurrent_instances: 1
+  timeout_minutes: 30
+  retry:
+    max_attempts: 3
+    backoff_seconds: 60
+
+# Resources
+resources:
+  memory_mb: 512
+  cpu_shares: 1
+  network: outbound-only

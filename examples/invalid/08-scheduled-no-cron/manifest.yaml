@@ -1,0 +1,11 @@
+spec_version: "1.0"
+name: "scheduled-no-cron"
+version: "1.0.0"
+description: Scheduled execution type but no schedule field.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+execution:
+  type: scheduled

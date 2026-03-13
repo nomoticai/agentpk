@@ -1,0 +1,11 @@
+spec_version: "1.0"
+name: "My Invalid Agent Name"
+version: "1.0.0"
+description: Agent name contains uppercase letters and spaces.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+execution:
+  type: on-demand

@@ -1,0 +1,5 @@
+spec_version: "1.0"
+name: broken-agent
+  this is: not valid yaml
+    runtime:
+  language: python

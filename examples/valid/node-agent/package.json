@@ -1,0 +1,10 @@
+{
+  "name": "web-scraper",
+  "version": "1.0.0",
+  "description": "Product pricing scraper agent",
+  "main": "agent.js",
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "node-fetch": "^3.0.0"
+  }
+}

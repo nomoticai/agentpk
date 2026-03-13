@@ -1,0 +1,388 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentpk.dev/manifest.schema.json",
+  "title": "Agent Package Manifest",
+  "description": "Schema for the manifest.yaml inside an .agent package. Covers Zone 1 (open core) and the auto-generated _package block.",
+  "type": "object",
+  "required": [
+    "spec_version",
+    "name",
+    "version",
+    "description",
+    "runtime",
+    "execution"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "spec_version": {
+      "type": "string",
+      "description": "Version of the agent package specification this manifest conforms to.",
+      "enum": ["1.0"]
+    },
+    "name": {
+      "type": "string",
+      "description": "Unique agent identifier. Must be lowercase, hyphens and digits only, starting with a letter.",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Human-readable display name shown in registries and UIs."
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version (MAJOR.MINOR.PATCH) of the agent.",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(\\.(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?$"
+    },
+    "description": {
+      "type": "string",
+      "description": "One-line summary of what this agent does."
+    },
+    "author": {
+      "type": "string",
+      "description": "Author name or handle."
+    },
+    "organization": {
+      "type": "string",
+      "description": "Organisation that maintains this agent."
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license identifier (e.g. MIT, Apache-2.0)."
+    },
+    "tags": {
+      "type": "array",
+      "description": "Searchable tags for registry discovery.",
+      "items": { "type": "string" }
+    },
+
+    "runtime": {
+      "type": "object",
+      "description": "Runtime environment configuration.",
+      "required": ["language", "language_version", "entry_point"],
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "type": "string",
+          "description": "Programming language of the agent.",
+          "enum": ["python", "nodejs", "typescript", "go", "rust"]
+        },
+        "language_version": {
+          "type": "string",
+          "description": "Minimum required language version (e.g. 3.11)."
+        },
+        "entry_point": {
+          "type": "string",
+          "description": "Path to the file containing the agent entry function."
+        },
+        "entry_function": {
+          "type": "string",
+          "description": "Function name to call to start the agent.",
+          "default": "main"
+        },
+        "dependencies": {
+          "type": "string",
+          "description": "Path to the dependency file (e.g. requirements.txt, package.json)."
+        }
+      }
+    },
+
+    "model": {
+      "type": "object",
+      "description": "LLM model preferences (optional).",
+      "additionalProperties": false,
+      "properties": {
+        "agnostic": {
+          "type": "boolean",
+          "description": "True if the agent works with any LLM.",
+          "default": false
+        },
+        "preferred": {
+          "type": "string",
+          "description": "Preferred model identifier (e.g. claude-sonnet-4-20250514)."
+        },
+        "minimum_context": {
+          "type": "integer",
+          "description": "Minimum context window size in tokens."
+        },
+        "alternatives": {
+          "type": "array",
+          "description": "Alternative model identifiers.",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "framework": {
+      "type": "object",
+      "description": "Agent framework configuration (optional).",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the agent framework.",
+          "enum": [
+            "langchain", "crewai", "autogen", "llamaindex", "haystack",
+            "semantic-kernel", "dspy", "smolagents", "pydantic-ai", "custom"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "description": "Framework version constraint."
+        }
+      }
+    },
+
+    "capabilities": {
+      "type": "object",
+      "description": "Agent capabilities — tools the agent exposes.",
+      "additionalProperties": false,
+      "properties": {
+        "tools": {
+          "type": "array",
+          "description": "List of tool declarations.",
+          "items": {
+            "type": "object",
+            "required": ["id", "description", "scope", "required"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique tool identifier."
+              },
+              "description": {
+                "type": "string",
+                "description": "What this tool does."
+              },
+              "scope": {
+                "type": "string",
+                "description": "Permission scope required by this tool.",
+                "enum": ["read", "write", "execute", "delete", "admin"]
+              },
+              "required": {
+                "type": "boolean",
+                "description": "True if the runtime must provide this tool."
+              },
+              "targets": {
+                "type": "array",
+                "description": "Resource patterns this tool operates on.",
+                "items": { "type": "string" }
+              },
+              "constraints": {
+                "type": "object",
+                "description": "Tool-specific constraints (free-form)."
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "permissions": {
+      "type": "object",
+      "description": "Data classification and environment variable permissions (optional).",
+      "additionalProperties": false,
+      "properties": {
+        "data_classes": {
+          "type": "array",
+          "description": "Data classification declarations.",
+          "items": {
+            "type": "object",
+            "required": ["name", "access"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Data class name (e.g. pii, phi)."
+              },
+              "access": {
+                "type": "string",
+                "description": "Access level (e.g. read, write)."
+              }
+            }
+          }
+        },
+        "environments": {
+          "type": "object",
+          "description": "Environment variable access control.",
+          "additionalProperties": false,
+          "properties": {
+            "allowed": {
+              "type": "array",
+              "description": "Environment variables the agent may read.",
+              "items": { "type": "string" }
+            },
+            "denied": {
+              "type": "array",
+              "description": "Environment variables the agent must not read.",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "execution": {
+      "type": "object",
+      "description": "Execution type, scheduling, and operational constraints.",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "How this agent is started.",
+          "enum": ["scheduled", "triggered", "continuous", "on-demand"]
+        },
+        "schedule": {
+          "type": "string",
+          "description": "Cron expression (required when type is 'scheduled')."
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone for scheduling (default: UTC).",
+          "default": "UTC"
+        },
+        "triggers": {
+          "type": "array",
+          "description": "Events that start the agent (for type 'triggered').",
+          "items": {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "description": "Event name to listen for."
+              }
+            }
+          }
+        },
+        "poll_interval_seconds": {
+          "type": "integer",
+          "description": "Polling interval for continuous agents."
+        },
+        "permitted_windows": {
+          "type": "array",
+          "description": "Time windows during which execution is allowed.",
+          "items": {
+            "type": "object",
+            "required": ["days", "hours"],
+            "additionalProperties": false,
+            "properties": {
+              "days": {
+                "type": "array",
+                "description": "Allowed days (e.g. mon, tue).",
+                "items": { "type": "string" }
+              },
+              "hours": {
+                "type": "string",
+                "description": "Allowed hours range (e.g. 09:00-17:00)."
+              },
+              "timezone": {
+                "type": "string",
+                "description": "Timezone for this window.",
+                "default": "UTC"
+              }
+            }
+          }
+        },
+        "max_concurrent_instances": {
+          "type": "integer",
+          "description": "Maximum parallel instances of this agent.",
+          "default": 1
+        },
+        "timeout_minutes": {
+          "type": "integer",
+          "description": "Maximum runtime in minutes before forced termination."
+        },
+        "retry": {
+          "type": "object",
+          "description": "Retry policy on failure.",
+          "additionalProperties": false,
+          "properties": {
+            "max_attempts": {
+              "type": "integer",
+              "description": "Maximum retry attempts.",
+              "default": 3
+            },
+            "backoff_seconds": {
+              "type": "integer",
+              "description": "Seconds to wait between retries.",
+              "default": 60
+            }
+          }
+        }
+      }
+    },
+
+    "resources": {
+      "type": "object",
+      "description": "Compute resource requests (optional).",
+      "additionalProperties": false,
+      "properties": {
+        "memory_mb": {
+          "type": "integer",
+          "description": "Requested memory in megabytes."
+        },
+        "cpu_shares": {
+          "type": "integer",
+          "description": "Requested CPU shares."
+        },
+        "network": {
+          "type": "string",
+          "description": "Network access level.",
+          "enum": ["none", "inbound", "outbound-only", "bidirectional"]
+        }
+      }
+    },
+
+    "_package": {
+      "type": "object",
+      "description": "Build-time package metadata. Auto-generated by 'agent pack' — do not edit manually.",
+      "required": [
+        "format",
+        "format_version",
+        "packaged_at",
+        "packaged_by",
+        "manifest_hash",
+        "files_hash",
+        "total_files",
+        "package_size_bytes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "type": "string",
+          "description": "Package format identifier.",
+          "const": "agent-package-format"
+        },
+        "format_version": {
+          "type": "string",
+          "description": "Version of the package format."
+        },
+        "packaged_at": {
+          "type": "string",
+          "description": "ISO 8601 timestamp of when the package was created."
+        },
+        "packaged_by": {
+          "type": "string",
+          "description": "Tool and version that created the package."
+        },
+        "manifest_hash": {
+          "type": "string",
+          "description": "SHA-256 hash of zone 1 content (excluding _package)."
+        },
+        "files_hash": {
+          "type": "string",
+          "description": "Combined SHA-256 hash of all user files."
+        },
+        "total_files": {
+          "type": "integer",
+          "description": "Number of user files in the package."
+        },
+        "package_size_bytes": {
+          "type": "integer",
+          "description": "Size of the .agent ZIP archive in bytes."
+        }
+      }
+    }
+  }
+}

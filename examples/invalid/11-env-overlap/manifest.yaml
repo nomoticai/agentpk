@@ -1,0 +1,20 @@
+spec_version: "1.0"
+name: "env-overlap"
+version: "1.0.0"
+description: Environment variable appears in both allowed and denied lists.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+permissions:
+  environments:
+    allowed:
+      - DATABASE_URL
+      - API_KEY
+      - STAGING_HOST
+    denied:
+      - SECRET_TOKEN
+      - STAGING_HOST
+execution:
+  type: on-demand

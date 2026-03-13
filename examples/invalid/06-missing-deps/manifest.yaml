@@ -1,0 +1,11 @@
+spec_version: "1.0"
+name: "missing-deps"
+version: "1.0.0"
+description: Dependencies file does not exist on disk.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+execution:
+  type: on-demand

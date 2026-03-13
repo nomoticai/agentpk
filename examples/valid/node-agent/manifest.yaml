@@ -1,0 +1,28 @@
+spec_version: "1.0"
+name: web-scraper
+display_name: Web Scraper
+version: "1.0.0"
+description: Scrapes product pricing data from e-commerce sites on a schedule.
+runtime:
+  language: nodejs
+  language_version: "20"
+  entry_point: agent.js
+  dependencies: package.json
+capabilities:
+  tools:
+    - id: fetch_page
+      description: Fetch a web page by URL
+      scope: read
+      required: true
+    - id: write_results
+      description: Write scraped data to storage
+      scope: write
+      required: true
+execution:
+  type: scheduled
+  schedule: "0 6 * * *"
+  timezone: UTC
+  timeout_minutes: 20
+resources:
+  memory_mb: 256
+  network: outbound-only

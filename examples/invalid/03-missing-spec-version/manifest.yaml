@@ -1,0 +1,10 @@
+name: no-spec-version
+version: "1.0.0"
+description: This manifest is missing the spec_version field.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+execution:
+  type: on-demand

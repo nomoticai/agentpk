@@ -1,0 +1,50 @@
+spec_version: "1.0"
+name: customer-onboarding
+display_name: "Customer Onboarding Agent"
+version: "0.1.0"
+description: "Guides new customers through account setup and verification."
+author: "agentpk contributors"
+license: "MIT"
+tags:
+  - onboarding
+  - customer
+  - automation
+
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: src/agent.py
+  entry_function: main
+  dependencies: requirements.txt
+
+capabilities:
+  tools:
+    - id: read_customer_record
+      description: "Fetch customer profile and signup details from the CRM."
+      scope: read
+      required: true
+      targets:
+        - "customers.*"
+    - id: update_onboarding_status
+      description: "Write onboarding progress and milestone flags to the customer record."
+      scope: write
+      required: true
+      targets:
+        - "customers.onboarding"
+    - id: send_welcome_email
+      description: "Send a personalised welcome email via the messaging service."
+      scope: write
+      required: true
+      targets:
+        - "notifications.email"
+
+execution:
+  type: triggered
+  triggers:
+    - event: customer.signup
+  timeout_minutes: 15
+
+resources:
+  memory_mb: 256
+  cpu_shares: 128
+  network: outbound-only
