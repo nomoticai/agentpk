@@ -19,7 +19,14 @@ RESERVED_FILENAMES = [
     "SPEC.md",
 ]
 
-VALID_LANGUAGES = ["python", "nodejs", "typescript", "go", "rust"]
+VALID_LANGUAGES = ["python", "nodejs", "typescript", "go", "rust", "java"]
+
+# Languages with full AST-based extraction (highest Level 2 accuracy)
+SUPPORTED_LANGUAGES = ["python", "nodejs", "typescript", "go", "java"]
+AST_LANGUAGES = ["python", "nodejs", "typescript"]
+
+# Languages with pattern-based extraction (good accuracy, deterministic)
+PATTERN_LANGUAGES = ["go", "java"]
 
 VALID_EXECUTION_TYPES = ["scheduled", "triggered", "continuous", "on-demand"]
 

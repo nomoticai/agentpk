@@ -115,7 +115,13 @@ def cli() -> None:
     default=".",
     help="Parent directory for the new project.",
 )
-def init(name: str, directory: Path) -> None:
+@click.option(
+    "--runtime",
+    type=click.Choice(["python", "nodejs", "typescript", "go", "java"]),
+    default="python",
+    help="Runtime language for the agent project.",
+)
+def init(name: str, directory: Path, runtime: str) -> None:
     """Scaffold a new agent project."""
     from agentpk.scaffold import scaffold
 
@@ -126,7 +132,7 @@ def init(name: str, directory: Path) -> None:
         name = name_path.name
     else:
         directory = Path(directory).resolve()
-    files = scaffold(name, directory)
+    files = scaffold(name, directory, runtime=runtime)
 
     console.print(
         Panel(
@@ -1028,3 +1034,24 @@ def keygen(out: Path) -> None:
     console.print(
         Panel("[bold green]Key pair generated.[/bold green]", title="agent keygen")
     )
+
+
+# ---------------------------------------------------------------------------
+# serve
+# ---------------------------------------------------------------------------
+
+@cli.command("serve")
+@click.option("--host", default="0.0.0.0", show_default=True)
+@click.option("--port", default=8080, show_default=True)
+@click.option("--reload", is_flag=True, default=False, help="Auto-reload on code changes (dev mode).")
+def serve_cmd(host, port, reload):
+    """Start the agentpk REST API and packaging UI."""
+    try:
+        from agentpk.api.server import serve
+    except ImportError:
+        click.echo("API server requires: pip install agentpk[api]", err=True)
+        sys.exit(1)
+
+    click.echo(f"Starting agentpk API on http://{host}:{port}")
+    click.echo(f"Packaging UI: http://localhost:{port}")
+    serve(host=host, port=port, reload=reload)

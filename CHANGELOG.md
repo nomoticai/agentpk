@@ -11,6 +11,43 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.0] — 2026-03-16
+
+### Added
+- **Python SDK**: `from agentpk import pack, analyze, validate, inspect_package, init, diff, sign, verify`
+  — all CLI operations now available as typed Python functions with dataclass return types
+- Multi-language agent support: Node.js, TypeScript, Go, Java
+- Pluggable extractor architecture (src/agentpk/extractors/) — new languages via single module addition
+- Node.js AST-based signal extraction using acorn via bundled js_ast_helper.js
+- TypeScript signal extraction extending Node.js extractor
+- Go pattern-based signal extraction (imports, HTTP calls, subprocess, env vars)
+- Java pattern-based signal extraction (imports, HTTP clients, subprocess, env vars, Spring AI @Tool)
+- Language auto-detection from file extension distribution with developer warning
+- `agent init --runtime` flag: nodejs, typescript, go, java
+- Scaffold templates for Node.js, TypeScript, Go, Java projects
+- 4 new self-test scenarios for multi-language validation
+- Graceful Level 2 skip with documented reason for unsupported languages
+- Typed exception hierarchy: AgentpkError, ManifestError, PackagingError, ValidationError, AnalysisError, PackageNotFoundError
+- **REST API**: `pip install agentpk[api]` → `agent serve` → POST/GET /v1/packages
+- **Packaging UI**: single-page web app served at / when API is running
+- Async job model: submit → poll → download (handles long-running Level 3/4 analysis)
+- API test suite in tests/test_api.py
+
+### Changed
+- CLI refactored to call SDK functions (zero behavior change for CLI users)
+- analyzer.py refactored to use extractor registry (zero behavior change for Python agents)
+- Internal modules moved to src/agentpk/_internal/ (not public API)
+- constants.py: SUPPORTED_LANGUAGES and AST_LANGUAGES/PATTERN_LANGUAGES added
+- manifest.py: language auto-detection helper added
+
+### Notes
+- Python analysis behavior is identical to v0.1.1; extractor refactor is internal only
+- Node.js extractor requires Node.js on PATH for AST mode; falls back to pattern-based if unavailable
+- Go and Java extractors are pattern-based and have no runtime dependencies
+- SDK functions never call sys.exit() or print to stdout — all output through return values and exceptions
+
+---
+
 ## [0.1.0] — 2026-03-12
 
 Initial release of agentpk and the `.agent` open packaging standard.

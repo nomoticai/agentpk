@@ -1,0 +1,17 @@
+spec_version: "1.0"
+name: test-node-agent
+version: "0.1.0"
+description: "Test Node.js agent for fixture testing."
+runtime:
+  language: nodejs
+  language_version: "20"
+  entry_point: agent.js
+  dependencies: package.json
+capabilities:
+  tools:
+    - id: fetch_data
+      description: "Fetch data from API"
+      scope: read
+      required: true
+execution:
+  type: on-demand

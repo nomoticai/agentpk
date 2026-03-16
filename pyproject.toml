@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentpk"
-version = "0.1.1"
+version = "0.2.0"
 description = "Package AI agents into portable .agent files"
 readme = "README.md"
 license = "MIT"
@@ -39,6 +39,14 @@ Repository = "https://github.com/nomoticai/agentpk"
 [tool.hatch.build.targets.wheel]
 packages = ["src/agentpk"]
 
+[tool.setuptools.package-data]
+agentpk = [
+    "extractors/js_ast_helper.js",
+    "api/ui/*.html",
+    "api/ui/*.css",
+    "api/ui/*.js",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
@@ -46,5 +54,10 @@ testpaths = ["tests"]
 dev = [
     "pytest",
     "pytest-cov",
+]
+api = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.9",
 ]
 

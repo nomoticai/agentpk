@@ -1,0 +1,13 @@
+spec_version: "1.0"
+name: test-go-agent
+version: "0.1.0"
+description: "Test Go agent."
+runtime:
+  language: go
+  language_version: "1.21"
+  entry_point: main.go
+  dependencies: go.mod
+capabilities:
+  tools: []
+execution:
+  type: on-demand

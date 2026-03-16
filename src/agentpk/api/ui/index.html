@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>agentpk — Package & Certify</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0f1117;
+    color: #e1e4e8;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    background: #1c1f26;
+    border: 1px solid #2d3139;
+    border-radius: 12px;
+    padding: 40px;
+    width: 100%;
+    max-width: 580px;
+  }
+  .logo {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6e7681;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #f0f3f6;
+    margin-bottom: 28px;
+  }
+  .drop-zone {
+    border: 2px dashed #2d3139;
+    border-radius: 8px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    margin-bottom: 20px;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: #4d9cf8;
+    background: rgba(77, 156, 248, 0.05);
+  }
+  .drop-zone .icon { font-size: 32px; margin-bottom: 10px; }
+  .drop-zone p { color: #6e7681; font-size: 14px; }
+  .drop-zone p span { color: #4d9cf8; }
+  .file-selected { color: #3fb950; font-weight: 500; margin-top: 8px; font-size: 14px; }
+  .options { margin-bottom: 24px; }
+  .options label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #c9d1d9;
+    margin-bottom: 12px;
+    cursor: pointer;
+  }
+  .options input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: #4d9cf8; }
+  .levels {
+    margin-left: 26px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .levels label { margin-bottom: 0; }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: #4d9cf8;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: #3d8ce8; }
+  .btn:disabled { background: #2d3139; color: #6e7681; cursor: not-allowed; }
+  .status {
+    margin-top: 28px;
+    display: none;
+  }
+  .spinner {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border: 2px solid #2d3139;
+    border-top-color: #4d9cf8;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status-text { font-size: 14px; color: #6e7681; }
+  .result { display: none; margin-top: 28px; }
+  .score-block {
+    text-align: center;
+    padding: 28px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+  .score-block.verified { background: rgba(63, 185, 80, 0.1); border: 1px solid #3fb950; }
+  .score-block.high     { background: rgba(63, 185, 80, 0.07); border: 1px solid #3fb950; }
+  .score-block.moderate { background: rgba(210, 153, 34, 0.1); border: 1px solid #d29922; }
+  .score-block.low      { background: rgba(248, 81, 73, 0.08); border: 1px solid #f85149; }
+  .score-block.unverified { background: rgba(248, 81, 73, 0.1); border: 1px solid #f85149; }
+  .score-num {
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .score-block.verified .score-num,
+  .score-block.high .score-num { color: #3fb950; }
+  .score-block.moderate .score-num { color: #d29922; }
+  .score-block.low .score-num,
+  .score-block.unverified .score-num { color: #f85149; }
+  .score-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #c9d1d9;
+    margin-bottom: 4px;
+  }
+  .score-sub { font-size: 13px; color: #6e7681; }
+  .meta { font-size: 13px; color: #6e7681; margin-bottom: 16px; }
+  .meta span { color: #c9d1d9; }
+  .disc-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6e7681;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .disc-header:hover { color: #c9d1d9; }
+  .disc-list { display: none; }
+  .disc-list.open { display: block; }
+  .disc-item {
+    background: #141720;
+    border: 1px solid #2d3139;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .disc-item .badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 6px;
+    text-transform: uppercase;
+  }
+  .badge.minor { background: rgba(210, 153, 34, 0.2); color: #d29922; }
+  .badge.major { background: rgba(248, 81, 73, 0.18); color: #f85149; }
+  .badge.critical { background: rgba(248, 81, 73, 0.3); color: #ff6b6b; }
+  .disc-item .evidence { color: #6e7681; margin-top: 5px; font-family: monospace; }
+  .warnings { margin-top: 12px; }
+  .warn-item {
+    background: rgba(210, 153, 34, 0.08);
+    border: 1px solid rgba(210, 153, 34, 0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #d29922;
+    margin-bottom: 6px;
+  }
+  .download-btn {
+    margin-top: 20px;
+    background: #3fb950;
+  }
+  .download-btn:hover { background: #2fa040; }
+  .reset-btn {
+    margin-top: 10px;
+    background: transparent;
+    border: 1px solid #2d3139;
+    color: #6e7681;
+  }
+  .reset-btn:hover { border-color: #4d9cf8; color: #4d9cf8; background: transparent; }
+  .error-box {
+    display: none;
+    margin-top: 20px;
+    background: rgba(248, 81, 73, 0.08);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    color: #f85149;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">agentpk</div>
+  <h1>Package &amp; Certify</h1>
+
+  <div id="form-section">
+    <div class="drop-zone" id="drop-zone">
+      <div class="icon">&#x1F4E6;</div>
+      <p>Drag your agent directory here (as a <strong>.zip</strong>)<br>
+         or <span id="browse-link">click to browse</span></p>
+      <div class="file-selected" id="file-name"></div>
+      <input type="file" id="file-input" accept=".zip" style="display:none">
+    </div>
+
+    <div class="options">
+      <label>
+        <input type="checkbox" id="opt-analyze" checked>
+        Run behavioral verification (--analyze)
+      </label>
+      <div class="levels" id="levels-row">
+        <label><input type="checkbox" class="level-cb" value="1" checked> Level 1</label>
+        <label><input type="checkbox" class="level-cb" value="2" checked> Level 2</label>
+        <label><input type="checkbox" class="level-cb" value="3"> Level 3 (LLM)</label>
+        <label><input type="checkbox" class="level-cb" value="4"> Level 4 (Docker)</label>
+      </div>
+      <label>
+        <input type="checkbox" id="opt-strict">
+        Strict mode (fail if requested level unavailable)
+      </label>
+    </div>
+
+    <button class="btn" id="pack-btn" disabled>Select a .zip to continue</button>
+  </div>
+
+  <div class="status" id="status-section">
+    <span class="spinner"></span>
+    <span class="status-text" id="status-text">Submitting...</span>
+  </div>
+
+  <div class="error-box" id="error-box"></div>
+
+  <div class="result" id="result-section">
+    <div class="score-block" id="score-block">
+      <div class="score-num" id="score-num">--</div>
+      <div class="score-label" id="score-label">--</div>
+      <div class="score-sub" id="score-sub"></div>
+    </div>
+
+    <div class="meta" id="meta-line"></div>
+
+    <div id="disc-section" style="display:none">
+      <div class="disc-header" id="disc-toggle">&#x25B6; Discrepancies (<span id="disc-count">0</span>)</div>
+      <div class="disc-list" id="disc-list"></div>
+    </div>
+
+    <div class="warnings" id="warnings-section"></div>
+
+    <button class="btn download-btn" id="download-btn">&#x2B07; Download .agent file</button>
+    <button class="btn reset-btn" id="reset-btn">Package another agent</button>
+  </div>
+</div>
+
+<script>
+  const API = '';  // relative - same origin as this page
+  let selectedFile = null;
+  let currentJobId = null;
+  let pollTimer = null;
+
+  // -- File selection --
+
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const browseLink = document.getElementById('browse-link');
+  const packBtn = document.getElementById('pack-btn');
+
+  browseLink.onclick = () => fileInput.click();
+  dropZone.onclick = (e) => { if (e.target !== browseLink) fileInput.click(); };
+
+  fileInput.onchange = () => {
+    if (fileInput.files[0]) selectFile(fileInput.files[0]);
+  };
+
+  dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); };
+  dropZone.ondragleave = () => dropZone.classList.remove('drag-over');
+  dropZone.ondrop = (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.zip')) selectFile(f);
+    else showError('Please drop a .zip file.');
+  };
+
+  function selectFile(f) {
+    selectedFile = f;
+    document.getElementById('file-name').textContent = '\u2713 ' + f.name;
+    packBtn.disabled = false;
+    packBtn.textContent = 'Pack & Certify';
+    hideError();
+  }
+
+  // -- Options --
+
+  const optAnalyze = document.getElementById('opt-analyze');
+  const levelsRow = document.getElementById('levels-row');
+  optAnalyze.onchange = () => {
+    levelsRow.style.opacity = optAnalyze.checked ? '1' : '0.4';
+    levelsRow.style.pointerEvents = optAnalyze.checked ? '' : 'none';
+  };
+
+  // -- Pack --
+
+  packBtn.onclick = async () => {
+    if (!selectedFile) return;
+    startJob();
+  };
+
+  async function startJob() {
+    showStatus('Uploading...');
+
+    const levels = optAnalyze.checked
+      ? [...document.querySelectorAll('.level-cb:checked')].map(cb => cb.value).join(',')
+      : '';
+
+    const fd = new FormData();
+    fd.append('source', selectedFile);
+    fd.append('analyze', optAnalyze.checked ? 'true' : 'false');
+    fd.append('levels', levels);
+    fd.append('strict', document.getElementById('opt-strict').checked ? 'true' : 'false');
+
+    try {
+      const res = await fetch(API + '/v1/packages', { method: 'POST', body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || 'Upload failed');
+      }
+      const data = await res.json();
+      currentJobId = data.job_id;
+      pollJob();
+    } catch (e) {
+      showError(e.message);
+      resetToForm();
+    }
+  }
+
+  function pollJob() {
+    showStatus('Processing...');
+    pollTimer = setInterval(async () => {
+      try {
+        const res = await fetch(API + '/v1/packages/' + currentJobId);
+        if (!res.ok) throw new Error('Poll failed: ' + res.status);
+        const data = await res.json();
+
+        if (data.status === 'running') showStatus('Analyzing...');
+        if (data.status === 'complete') {
+          clearInterval(pollTimer);
+          showResult(data);
+        }
+        if (data.status === 'failed') {
+          clearInterval(pollTimer);
+          showError(data.error || 'Packaging failed');
+          resetToForm();
+        }
+      } catch (e) {
+        clearInterval(pollTimer);
+        showError('Lost connection to API: ' + e.message);
+        resetToForm();
+      }
+    }, 1500);
+  }
+
+  // -- Result --
+
+  function showResult(data) {
+    document.getElementById('status-section').style.display = 'none';
+    document.getElementById('form-section').style.display = 'none';
+
+    const resultSection = document.getElementById('result-section');
+    resultSection.style.display = 'block';
+
+    if (data.analysis) {
+      const a = data.analysis;
+      const scoreBlock = document.getElementById('score-block');
+      const cls = a.trust_label.toLowerCase().replace(' ', '');
+      scoreBlock.className = 'score-block ' + cls;
+      document.getElementById('score-num').textContent = a.trust_score;
+      document.getElementById('score-label').textContent = a.trust_label;
+
+      const skipped = a.levels_skipped.length
+        ? ' \u00B7 ' + a.levels_skipped.length + ' level(s) skipped'
+        : '';
+      document.getElementById('score-sub').textContent =
+        'Levels run: ' + a.levels_run.join(', ') + skipped;
+
+      document.getElementById('meta-line').innerHTML =
+        'Discrepancies: <span>' + a.discrepancy_count + '</span>' +
+        (data.package_filename ? ' \u00B7 File: <span>' + data.package_filename + '</span>' : '');
+
+      if (a.discrepancy_count > 0) {
+        document.getElementById('disc-section').style.display = 'block';
+        document.getElementById('disc-count').textContent = a.discrepancy_count;
+        const list = document.getElementById('disc-list');
+        list.innerHTML = a.discrepancy_records.map(d => `
+          <div class="disc-item">
+            <span class="badge ${d.severity}">${d.severity}</span>
+            <strong>${d.type}</strong> &mdash; ${escHtml(d.capability)}
+            <div class="evidence">${escHtml(d.evidence)}</div>
+          </div>
+        `).join('');
+        document.getElementById('disc-toggle').onclick = () => {
+          list.classList.toggle('open');
+          document.getElementById('disc-toggle').textContent =
+            (list.classList.contains('open') ? '\u25BC' : '\u25B6') +
+            ' Discrepancies (' + a.discrepancy_count + ')';
+        };
+      }
+
+      if (a.extractor_warnings.length) {
+        document.getElementById('warnings-section').innerHTML =
+          a.extractor_warnings.map(w =>
+            `<div class="warn-item">\u26A0 ${escHtml(w)}</div>`).join('');
+      }
+    } else {
+      // No analysis
+      document.getElementById('score-block').style.display = 'none';
+      document.getElementById('meta-line').innerHTML =
+        data.package_filename ? 'File: <span>' + data.package_filename + '</span>' : '';
+    }
+
+    document.getElementById('download-btn').onclick = () => {
+      window.location = API + '/v1/packages/' + currentJobId + '/download';
+    };
+    document.getElementById('reset-btn').onclick = resetAll;
+  }
+
+  // -- Helpers --
+
+  function showStatus(msg) {
+    document.getElementById('form-section').style.display = 'none';
+    document.getElementById('status-section').style.display = 'block';
+    document.getElementById('status-text').textContent = msg;
+    document.getElementById('result-section').style.display = 'none';
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('error-box');
+    box.textContent = '\u2717 ' + msg;
+    box.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('error-box').style.display = 'none';
+  }
+
+  function resetToForm() {
+    document.getElementById('form-section').style.display = 'block';
+    document.getElementById('status-section').style.display = 'none';
+  }
+
+  function resetAll() {
+    selectedFile = null;
+    currentJobId = null;
+    if (pollTimer) clearInterval(pollTimer);
+    document.getElementById('file-name').textContent = '';
+    document.getElementById('file-input').value = '';
+    packBtn.disabled = true;
+    packBtn.textContent = 'Select a .zip to continue';
+    document.getElementById('form-section').style.display = 'block';
+    document.getElementById('status-section').style.display = 'none';
+    document.getElementById('result-section').style.display = 'none';
+    document.getElementById('disc-list').innerHTML = '';
+    document.getElementById('warnings-section').innerHTML = '';
+    document.getElementById('disc-section').style.display = 'none';
+    document.getElementById('score-block').style.display = 'block';
+    hideError();
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>

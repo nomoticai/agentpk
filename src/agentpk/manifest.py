@@ -77,6 +77,47 @@ def compute_manifest_hash(manifest_path: Path) -> str:
     return f"sha256:{digest}"
 
 
+def detect_language(source_dir: Path) -> str | None:
+    """Infer runtime language from file extension distribution.
+
+    Returns language string or None if ambiguous.
+    """
+    ext_counts: dict[str, int] = {}
+    for f in source_dir.rglob("*"):
+        if f.is_file():
+            # Skip common non-source dirs
+            parts = f.relative_to(source_dir).parts
+            if any(
+                part in ("node_modules", ".venv", "venv", "__pycache__", ".git", "dist", "build")
+                for part in parts
+            ):
+                continue
+            ext = f.suffix.lower()
+            ext_counts[ext] = ext_counts.get(ext, 0) + 1
+
+    EXT_MAP = {
+        ".py": "python",
+        ".js": "nodejs",
+        ".mjs": "nodejs",
+        ".ts": "typescript",
+        ".tsx": "typescript",
+        ".go": "go",
+        ".java": "java",
+    }
+
+    lang_counts: dict[str, int] = {}
+    for ext, count in ext_counts.items():
+        lang = EXT_MAP.get(ext)
+        if lang:
+            lang_counts[lang] = lang_counts.get(lang, 0) + count
+
+    if not lang_counts:
+        return None
+
+    top_lang = max(lang_counts, key=lang_counts.get)  # type: ignore[arg-type]
+    return top_lang
+
+
 def dump_manifest(manifest: AgentManifest, manifest_path: Path) -> None:
     """Write an :class:`AgentManifest` to a YAML file.
 

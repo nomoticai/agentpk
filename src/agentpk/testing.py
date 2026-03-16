@@ -260,6 +260,63 @@ execution:
     _write(d, "requirements.txt", _REQUIREMENTS_TXT)
 
 
+def _setup_valid_go(d: Path) -> None:
+    manifest = """\
+spec_version: "1.0"
+name: "test-go"
+version: "1.0.0"
+description: Go agent.
+runtime:
+  language: go
+  language_version: "1.21"
+  entry_point: main.go
+  dependencies: go.mod
+execution:
+  type: on-demand
+"""
+    _write(d, "manifest.yaml", manifest)
+    _write(d, "main.go", 'package main\n\nimport "fmt"\n\nfunc main() { fmt.Println("hello") }\n')
+    _write(d, "go.mod", "module test-go\n\ngo 1.21\n")
+
+
+def _setup_valid_java(d: Path) -> None:
+    manifest = """\
+spec_version: "1.0"
+name: "test-java"
+version: "1.0.0"
+description: Java agent.
+runtime:
+  language: java
+  language_version: "17"
+  entry_point: Agent.java
+  dependencies: pom.xml
+execution:
+  type: on-demand
+"""
+    _write(d, "manifest.yaml", manifest)
+    _write(d, "Agent.java", 'public class Agent { public static void main(String[] args) {} }\n')
+    _write(d, "pom.xml", '<project><modelVersion>4.0.0</modelVersion><groupId>test</groupId><artifactId>test-java</artifactId><version>1.0.0</version></project>\n')
+
+
+def _setup_valid_typescript(d: Path) -> None:
+    manifest = """\
+spec_version: "1.0"
+name: "test-typescript"
+version: "1.0.0"
+description: TypeScript agent.
+runtime:
+  language: typescript
+  language_version: "20"
+  entry_point: agent.ts
+  dependencies: package.json
+execution:
+  type: on-demand
+"""
+    _write(d, "manifest.yaml", manifest)
+    _write(d, "agent.ts", 'export async function run() { console.log("hello"); }\n')
+    _write(d, "package.json", '{"name": "test-typescript", "version": "1.0.0"}\n')
+
+
 def _setup_env_overlap(d: Path) -> None:
     manifest = """\
 spec_version: "1.0"
@@ -316,6 +373,24 @@ TEST_CASES: list[TestCase] = [
         description="Node.js on-demand agent",
         expect_valid=True,
         setup=_setup_valid_nodejs,
+    ),
+    TestCase(
+        name="valid-go",
+        description="Go on-demand agent",
+        expect_valid=True,
+        setup=_setup_valid_go,
+    ),
+    TestCase(
+        name="valid-java",
+        description="Java on-demand agent",
+        expect_valid=True,
+        setup=_setup_valid_java,
+    ),
+    TestCase(
+        name="valid-typescript",
+        description="TypeScript on-demand agent",
+        expect_valid=True,
+        setup=_setup_valid_typescript,
     ),
     # ── invalid ──
     TestCase(

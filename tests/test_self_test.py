@@ -17,12 +17,12 @@ class TestSelfTestSuite:
 
     def test_case_count(self) -> None:
         """Ensure we have the expected number of built-in test cases."""
-        assert len(TEST_CASES) == 14
+        assert len(TEST_CASES) == 17
 
     def test_valid_cases_exist(self) -> None:
         """At least one valid test case should be registered."""
         valid = [tc for tc in TEST_CASES if tc.expect_valid]
-        assert len(valid) == 4
+        assert len(valid) == 7
 
     def test_invalid_cases_exist(self) -> None:
         """At least one invalid test case should be registered."""

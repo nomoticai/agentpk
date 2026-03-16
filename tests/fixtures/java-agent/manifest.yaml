@@ -1,0 +1,13 @@
+spec_version: "1.0"
+name: test-java-agent
+version: "0.1.0"
+description: "Test Java agent."
+runtime:
+  language: java
+  language_version: "17"
+  entry_point: Agent.java
+  dependencies: pom.xml
+capabilities:
+  tools: []
+execution:
+  type: on-demand

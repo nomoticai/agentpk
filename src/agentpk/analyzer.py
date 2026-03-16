@@ -531,12 +531,58 @@ def _collect_source_files(source_dir: Path) -> dict[str, Path]:
     return files
 
 
+def _convert_extractor_findings(
+    extractor_findings: "ExtractorFindings",
+    language: str,
+) -> StaticAnalysisFindings:
+    """Convert typed extractor findings to legacy string-based StaticAnalysisFindings.
+
+    This bridges the new extractor architecture with the existing discrepancy
+    classification logic which expects string-formatted lists.
+    """
+    from agentpk.extractors.base import StaticAnalysisFindings as ExtractorFindings
+
+    findings = StaticAnalysisFindings(detected_language=language)
+
+    for r in extractor_findings.imports:
+        findings.imports.append(f"{r.module}:{r.line}")
+
+    for nc in extractor_findings.network_calls:
+        lib_method = f"{nc.library}.{nc.method.lower()}" if nc.method != "UNKNOWN" else nc.library
+        findings.network_calls.append(f"{lib_method}:{nc.file}:{nc.line}")
+
+    for fw in extractor_findings.file_writes:
+        findings.file_writes.append(f"write:{fw.file}:{fw.line}")
+
+    for fr in extractor_findings.file_reads:
+        findings.file_reads.append(f"read:{fr.file}:{fr.line}")
+
+    for sc in extractor_findings.subprocess_calls:
+        findings.subprocess_calls.append(f"{sc.command}:{sc.file}:{sc.line}")
+
+    for ev in extractor_findings.env_var_accesses:
+        findings.env_vars_read.append(f"{ev.var_name}:{ev.file}:{ev.line}")
+
+    for tr in extractor_findings.tool_registrations:
+        findings.tool_registrations.append(
+            f"@{tr.framework}({tr.tool_name}):{tr.file}:{tr.line}"
+        )
+
+    for ef in extractor_findings.entry_functions:
+        findings.entry_functions.append(ef)
+
+    return findings
+
+
 def run_level2(
     source_dir: Path,
     manifest: Optional[dict] = None,
     language: str = "",
 ) -> tuple[LevelResult, StaticAnalysisFindings]:
     """Walk all source files and extract behavioral signals via AST analysis.
+
+    Uses the pluggable extractor registry when available, falling back to
+    the built-in Python AST and JS regex analysis for backward compatibility.
 
     Compare findings against manifest declarations.
     """
@@ -557,30 +603,71 @@ def run_level2(
             StaticAnalysisFindings(),
         )
 
-    findings = StaticAnalysisFindings(detected_language=language)
+    # Try the extractor registry first
+    from agentpk.extractors import get_extractor
 
-    # Analyze all files
-    for rel_name, path in source_files.items():
-        if path.suffix == ".py":
-            visitor = _analyze_python_file(path, rel_name)
-            findings.imports.extend(visitor.imports)
-            findings.network_calls.extend(visitor.network_calls)
-            findings.file_writes.extend(visitor.file_writes)
-            findings.file_reads.extend(visitor.file_reads)
-            findings.subprocess_calls.extend(visitor.subprocess_calls)
-            findings.env_vars_read.extend(visitor.env_vars_read)
-            findings.tool_registrations.extend(visitor.tool_registrations)
-            findings.external_apis.extend(visitor.external_apis)
-            findings.entry_functions.extend(visitor.entry_functions)
-        elif path.suffix in (".js", ".ts", ".mjs", ".cjs"):
-            js_findings = _analyze_js_file(path, rel_name)
-            findings.imports.extend(js_findings["imports"])
-            findings.network_calls.extend(js_findings["network_calls"])
-            findings.file_writes.extend(js_findings["file_writes"])
-            findings.file_reads.extend(js_findings["file_reads"])
-            findings.subprocess_calls.extend(js_findings["subprocess_calls"])
-            findings.env_vars_read.extend(js_findings["env_vars_read"])
-            findings.entry_functions.extend(js_findings["entry_functions"])
+    extractor = get_extractor(language) if language else None
+
+    if extractor is not None:
+        # Use the pluggable extractor
+        file_paths = list(source_files.values())
+        extractor_findings = extractor.extract(file_paths)
+        findings = _convert_extractor_findings(extractor_findings, language)
+
+        # For multi-language projects, also analyze files not covered by the
+        # primary extractor using the appropriate secondary extractors
+        primary_exts = set(extractor.file_extensions)
+        secondary_files: dict[str, list[Path]] = {}
+        for rel_name, path in source_files.items():
+            if path.suffix.lower() not in primary_exts:
+                ext = path.suffix.lower()
+                secondary_files.setdefault(ext, []).append(path)
+
+        for ext, paths in secondary_files.items():
+            # Map extension to language for secondary extraction
+            ext_lang_map = {
+                ".py": "python", ".js": "nodejs", ".mjs": "nodejs",
+                ".cjs": "nodejs", ".ts": "typescript", ".tsx": "typescript",
+                ".go": "go", ".java": "java",
+            }
+            sec_lang = ext_lang_map.get(ext)
+            if sec_lang and sec_lang != language:
+                sec_extractor = get_extractor(sec_lang)
+                if sec_extractor:
+                    sec_findings = sec_extractor.extract(paths)
+                    sec_legacy = _convert_extractor_findings(sec_findings, sec_lang)
+                    findings.imports.extend(sec_legacy.imports)
+                    findings.network_calls.extend(sec_legacy.network_calls)
+                    findings.file_writes.extend(sec_legacy.file_writes)
+                    findings.file_reads.extend(sec_legacy.file_reads)
+                    findings.subprocess_calls.extend(sec_legacy.subprocess_calls)
+                    findings.env_vars_read.extend(sec_legacy.env_vars_read)
+                    findings.tool_registrations.extend(sec_legacy.tool_registrations)
+                    findings.entry_functions.extend(sec_legacy.entry_functions)
+    else:
+        # Fallback to legacy inline analysis
+        findings = StaticAnalysisFindings(detected_language=language)
+        for rel_name, path in source_files.items():
+            if path.suffix == ".py":
+                visitor = _analyze_python_file(path, rel_name)
+                findings.imports.extend(visitor.imports)
+                findings.network_calls.extend(visitor.network_calls)
+                findings.file_writes.extend(visitor.file_writes)
+                findings.file_reads.extend(visitor.file_reads)
+                findings.subprocess_calls.extend(visitor.subprocess_calls)
+                findings.env_vars_read.extend(visitor.env_vars_read)
+                findings.tool_registrations.extend(visitor.tool_registrations)
+                findings.external_apis.extend(visitor.external_apis)
+                findings.entry_functions.extend(visitor.entry_functions)
+            elif path.suffix in (".js", ".ts", ".mjs", ".cjs"):
+                js_findings = _analyze_js_file(path, rel_name)
+                findings.imports.extend(js_findings["imports"])
+                findings.network_calls.extend(js_findings["network_calls"])
+                findings.file_writes.extend(js_findings["file_writes"])
+                findings.file_reads.extend(js_findings["file_reads"])
+                findings.subprocess_calls.extend(js_findings["subprocess_calls"])
+                findings.env_vars_read.extend(js_findings["env_vars_read"])
+                findings.entry_functions.extend(js_findings["entry_functions"])
 
     # Check for database module imports
     for imp in findings.imports:

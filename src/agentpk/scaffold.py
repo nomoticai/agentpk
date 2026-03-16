@@ -7,131 +7,28 @@ from pathlib import Path
 from agentpk.constants import FORMAT_VERSION
 
 # ---------------------------------------------------------------------------
-# Template content
+# Template content — Python (default)
 # ---------------------------------------------------------------------------
 
 _MANIFEST_TEMPLATE = """\
-# ──────────────────────────────────────────────────────────────────────────
-# Agent Package Manifest  (spec_version {spec_version})
-#
-# This file describes your agent so that runtimes, registries, and
-# package managers can understand what it does, what it needs, and
-# how to run it.
-#
-# Two zones:
-#   Zone 1 (open core)  — identity, runtime, capabilities, execution
-#   Zone 2 (_package)   — auto-generated at pack time — do not edit
-# ──────────────────────────────────────────────────────────────────────────
-
 spec_version: "{spec_version}"
-
-# ── Identity ──────────────────────────────────────────────────────────────
-# name:         lowercase, hyphens and numbers only  (e.g. my-agent)
-# version:      semantic version  (MAJOR.MINOR.PATCH)
-# description:  one-line summary shown in registries
-
 name: {name}
 version: "0.1.0"
 description: "TODO: Describe what this agent does."
-# display_name: "{display_name}"
-# author: "Your Name"
-# organization: "Your Org"
-# license: "MIT"
-# tags:
-#   - example
-
-# ── Runtime ───────────────────────────────────────────────────────────────
-# language:         python | nodejs | typescript | go | rust
-# language_version: minimum required version
-# entry_point:      path to the file that contains the agent entry function
-# entry_function:   function name to call (default: main)
-# dependencies:     path to dependency file (e.g. requirements.txt)
-
 runtime:
-  language: python
-  language_version: "3.11"
-  entry_point: src/agent.py
-  entry_function: main
-  dependencies: requirements.txt
-
-# ── Model (optional) ─────────────────────────────────────────────────────
-# Set agnostic: true if your agent works with any LLM.
-#
-# model:
-#   agnostic: true
-#   preferred: "claude-sonnet-4-20250514"
-#   minimum_context: 16000
-#   alternatives:
-#     - "gpt-4o"
-
-# ── Framework (optional) ─────────────────────────────────────────────────
-# Declare which agent framework you use.
-# Valid names: langchain, crewai, autogen, llamaindex, haystack,
-#              semantic-kernel, dspy, smolagents, pydantic-ai, custom
-#
-# framework:
-#   name: custom
-#   version: "1.0"
-
-# ── Capabilities ──────────────────────────────────────────────────────────
-# List every tool your agent exposes.
-#   id:          unique identifier
-#   scope:       read | write | execute | delete | admin
-#   required:    true if the runtime must provide this tool
-#   targets:     optional list of resource patterns
-#   constraints: optional dict of tool-specific limits
-
+  language: {language}
+  language_version: "{language_version}"
+  entry_point: {entry_point}
+  entry_function: {entry_function}
+  dependencies: {dependencies}
 capabilities:
   tools: []
-  # - id: example-tool
-  #   description: "What this tool does."
-  #   scope: read
-  #   required: true
-  #   targets:
-  #     - "resource.*"
-
-# ── Permissions (optional) ────────────────────────────────────────────────
-# permissions:
-#   data_classes:
-#     - name: pii
-#       access: read
-#   environments:
-#     allowed: [API_KEY]
-#     denied: [SECRET_TOKEN]
-
-# ── Execution ─────────────────────────────────────────────────────────────
-# type:  scheduled | triggered | continuous | on-demand
-#
-# For "scheduled": set schedule (cron expression) and timezone.
-# For "triggered": set triggers list.
-
 execution:
   type: on-demand
-  # schedule: "0 */6 * * *"
-  # timezone: "UTC"
-  # triggers:
-  #   - event: some_event
-  # timeout_minutes: 30
-  # max_concurrent_instances: 1
-  # retry:
-  #   max_attempts: 3
-  #   backoff_seconds: 60
-
-# ── Resources (optional) ─────────────────────────────────────────────────
-# resources:
-#   memory_mb: 512
-#   cpu_shares: 256
-#   network: none          # none | inbound | outbound-only | bidirectional
-
 """
 
 _AGENT_PY = """\
-\"\"\"Agent entry point.
-
-This is the file referenced by runtime.entry_point in manifest.yaml.
-The function referenced by runtime.entry_function (default: main) is
-called by the agent runtime to start your agent.
-\"\"\"
+\"\"\"Agent entry point.\"\"\"
 
 
 def main() -> None:
@@ -155,6 +52,137 @@ _REQUIREMENTS = """\
 # pydantic>=2.0
 """
 
+# ---------------------------------------------------------------------------
+# Template content — Node.js
+# ---------------------------------------------------------------------------
+
+_AGENT_JS = """\
+/**
+ * Agent entry point.
+ */
+
+async function run() {{
+  // TODO: implement your agent logic here
+  console.log("Hello from {name}!");
+}}
+
+module.exports = {{ run }};
+
+if (require.main === module) {{
+  run();
+}}
+"""
+
+_PACKAGE_JSON = """\
+{{
+  "name": "{name}",
+  "version": "0.1.0",
+  "description": "TODO: Describe what this agent does.",
+  "main": "agent.js",
+  "scripts": {{
+    "start": "node agent.js"
+  }},
+  "dependencies": {{}}
+}}
+"""
+
+# ---------------------------------------------------------------------------
+# Template content — TypeScript
+# ---------------------------------------------------------------------------
+
+_AGENT_TS = """\
+/**
+ * Agent entry point.
+ */
+
+export async function run(): Promise<void> {{
+  // TODO: implement your agent logic here
+  console.log("Hello from {name}!");
+}}
+
+if (require.main === module) {{
+  run();
+}}
+"""
+
+_TSCONFIG_JSON = """\
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "strict": true,
+    "outDir": "./dist",
+    "rootDir": "./",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["*.ts"]
+}
+"""
+
+# ---------------------------------------------------------------------------
+# Template content — Go
+# ---------------------------------------------------------------------------
+
+_MAIN_GO = """\
+package main
+
+import "fmt"
+
+func main() {{
+\t// TODO: implement your agent logic here
+\tfmt.Println("Hello from {name}!")
+}}
+"""
+
+_GO_MOD = """\
+module {name}
+
+go 1.21
+"""
+
+# ---------------------------------------------------------------------------
+# Template content — Java
+# ---------------------------------------------------------------------------
+
+_AGENT_JAVA = """\
+/**
+ * Agent entry point.
+ */
+public class Agent {{
+    public static void main(String[] args) {{
+        // TODO: implement your agent logic here
+        System.out.println("Hello from {name}!");
+    }}
+
+    public void run() {{
+        main(new String[]{{}});
+    }}
+}}
+"""
+
+_POM_XML = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>{name}</artifactId>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+</project>
+"""
+
+# ---------------------------------------------------------------------------
+# Common templates
+# ---------------------------------------------------------------------------
+
 _README = """\
 # {name}
 
@@ -171,29 +199,84 @@ agent validate {name}-0.1.0.agent
 ```
 """
 
-_GITIGNORE = """\
+_GITIGNORE_PYTHON = """\
 *.agent
 __pycache__/
 *.py[cod]
 .venv/
 """
 
+_GITIGNORE_NODE = """\
+*.agent
+node_modules/
+dist/
+"""
+
+_GITIGNORE_GO = """\
+*.agent
+bin/
+"""
+
+_GITIGNORE_JAVA = """\
+*.agent
+target/
+*.class
+"""
+
+# ---------------------------------------------------------------------------
+# Runtime configurations
+# ---------------------------------------------------------------------------
+
+_RUNTIME_CONFIGS = {
+    "python": {
+        "language": "python",
+        "language_version": "3.11",
+        "entry_point": "src/agent.py",
+        "entry_function": "main",
+        "dependencies": "requirements.txt",
+    },
+    "nodejs": {
+        "language": "nodejs",
+        "language_version": "20",
+        "entry_point": "agent.js",
+        "entry_function": "run",
+        "dependencies": "package.json",
+    },
+    "typescript": {
+        "language": "typescript",
+        "language_version": "20",
+        "entry_point": "agent.ts",
+        "entry_function": "run",
+        "dependencies": "package.json",
+    },
+    "go": {
+        "language": "go",
+        "language_version": "1.21",
+        "entry_point": "main.go",
+        "entry_function": "main",
+        "dependencies": "go.mod",
+    },
+    "java": {
+        "language": "java",
+        "language_version": "17",
+        "entry_point": "Agent.java",
+        "entry_function": "main",
+        "dependencies": "pom.xml",
+    },
+}
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
 
-def scaffold(project_name: str, output_dir: Path) -> list[str]:
+def scaffold(project_name: str, output_dir: Path, runtime: str = "python") -> list[str]:
     """Create a new agent project at *output_dir* / *project_name*.
 
     Returns a list of created file paths (relative to the project root).
     """
     project_dir = output_dir / project_name
     project_dir.mkdir(parents=True, exist_ok=True)
-    (project_dir / "src").mkdir(exist_ok=True)
-
-    display_name = project_name.replace("-", " ").title()
 
     files_created: list[str] = []
 
@@ -203,18 +286,44 @@ def scaffold(project_name: str, output_dir: Path) -> list[str]:
         path.write_text(content, encoding="utf-8")
         files_created.append(rel)
 
+    # Get runtime config
+    rt = _RUNTIME_CONFIGS.get(runtime, _RUNTIME_CONFIGS["python"])
+
+    # Write manifest
     _write(
         "manifest.yaml",
         _MANIFEST_TEMPLATE.format(
             spec_version=FORMAT_VERSION,
             name=project_name,
-            display_name=display_name,
+            **rt,
         ),
     )
-    _write("src/__init__.py", _INIT_PY)
-    _write("src/agent.py", _AGENT_PY.format(name=project_name))
-    _write("requirements.txt", _REQUIREMENTS)
+
+    # Write language-specific files
+    if runtime == "python":
+        (project_dir / "src").mkdir(exist_ok=True)
+        _write("src/__init__.py", _INIT_PY)
+        _write("src/agent.py", _AGENT_PY.format(name=project_name))
+        _write("requirements.txt", _REQUIREMENTS)
+        _write(".gitignore", _GITIGNORE_PYTHON)
+    elif runtime == "nodejs":
+        _write("agent.js", _AGENT_JS.format(name=project_name))
+        _write("package.json", _PACKAGE_JSON.format(name=project_name))
+        _write(".gitignore", _GITIGNORE_NODE)
+    elif runtime == "typescript":
+        _write("agent.ts", _AGENT_TS.format(name=project_name))
+        _write("package.json", _PACKAGE_JSON.format(name=project_name))
+        _write("tsconfig.json", _TSCONFIG_JSON)
+        _write(".gitignore", _GITIGNORE_NODE)
+    elif runtime == "go":
+        _write("main.go", _MAIN_GO.format(name=project_name))
+        _write("go.mod", _GO_MOD.format(name=project_name))
+        _write(".gitignore", _GITIGNORE_GO)
+    elif runtime == "java":
+        _write("Agent.java", _AGENT_JAVA.format(name=project_name))
+        _write("pom.xml", _POM_XML.format(name=project_name))
+        _write(".gitignore", _GITIGNORE_JAVA)
+
     _write("README.md", _README.format(name=project_name))
-    _write(".gitignore", _GITIGNORE)
 
     return files_created
