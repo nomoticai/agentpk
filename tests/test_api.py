@@ -5,6 +5,8 @@ import time
 import zipfile
 
 import pytest
+
+fastapi = pytest.importorskip("fastapi", reason="fastapi not installed (install with: pip install agentpk[api])")
 from fastapi.testclient import TestClient
 
 from agentpk.api.app import create_app
