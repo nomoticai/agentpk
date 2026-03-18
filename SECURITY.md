@@ -23,16 +23,11 @@ When you run `agent validate package.agent`, agentpk recomputes all
 hashes and compares them against the stored values. If any file has been
 modified — any byte in any file — validation fails.
 
-This means a valid package is guaranteed to be exactly what was produced
-at pack time. You can verify at any time that a package you received
-is identical to the package that was built.
-
 ### Version binding
 
 The manifest `name` and `version` fields are included in the manifest
 hash. A package cannot have its version number changed without
-invalidating the hash. The version you see in `agent inspect` is the
-version that was sealed into the package.
+invalidating the hash.
 
 ### No external dependencies for verification
 
@@ -48,45 +43,22 @@ no network access, no external services. Verification works offline.
 **The manifest is a declaration. agentpk cannot prove it is truthful.**
 
 A developer can write `scope: read` in a manifest and include write
-operations in the code. A developer can omit capabilities that exist in
-the code. The manifest is authored by a human, and humans can be wrong
-or dishonest.
-
-The trust score system (see [TRUST.md](TRUST.md)) provides machine-
-computed evidence about manifest accuracy. Static analysis, LLM review,
-and runtime sandbox observations all contribute to the score. But no
+operations in the code. The trust score system (see [TRUST.md](TRUST.md))
+provides machine-computed evidence about manifest accuracy. But no
 automated analysis provides certainty. A score of 100 means strong
 evidence of agreement between manifest and code. It does not mean proof.
-
-For agents in security-sensitive contexts, human review of source code
-remains appropriate. The trust score reduces the burden of that review —
-it directs attention to areas of uncertainty — it does not replace it.
 
 ### Runtime behavior
 
 agentpk governs the packaging and delivery of agents. It does not govern
-what an agent does when it executes in production.
-
-A packaged agent with an accurate, fully-verified manifest can still:
-- Behave differently in production than it did during analysis
-- Drift over time as model behavior changes
-- Take actions that are within its declared scope but outside intent
-- Interact with other agents in ways that produce unintended outcomes
-
-Runtime behavioral governance — enforcing that agents only do what they
-declared during execution, detecting drift, and interrupting unauthorized
-actions — is a separate problem addressed by runtime governance tooling.
-agentpk handles the packaging layer.
+what an agent does when it executes in production. Runtime behavioral
+governance is a separate problem addressed by runtime governance tooling.
 
 ### Identity of the packager
 
 The tamper-evident hash chain proves a package was not modified after
-it was built. It does not prove who built it.
-
-If you receive a `.agent` file and want to verify it came from a specific
-individual or organization, you need a cryptographic signature in
-addition to the package hash. See `agent sign` and `agent verify` in the
-command reference.
+it was built. It does not prove who built it. For identity verification,
+use `agent sign` and `agent verify`.
 
 ---
 
@@ -101,121 +73,103 @@ is 45 — human-declared, no analysis performed. Inside the package, the
 code contains a `requests.post()` call to an external API that the
 manifest does not mention.
 
-agentpk will:
-- Successfully validate the package (hashes are intact)
-- Show a trust score of 45 with "no analysis performed"
-- Display the declared manifest accurately
-
-agentpk will not:
-- Detect the undeclared network call (no analysis was run)
-- Prevent the package from being used
-
-The trust score of 45 is a signal that this package has not been
-verified. A policy of requiring a minimum trust score of 75 before
-accepting third-party packages would surface this gap and prompt the
-receiver to request a package built with analysis enabled.
+agentpk will validate the package (hashes are intact) and display the
+declared manifest accurately. It will not detect the undeclared network
+call if no analysis was run.
 
 With analysis enabled, the undeclared `requests.post()` would be
-detected as a MAJOR discrepancy by Level 2 static analysis. The trust
-score would drop significantly. The receiver would see the discrepancy
-in `agent inspect` and know to investigate before deploying.
+detected as a major discrepancy by Level 2 static analysis for all
+supported languages (Python, Node.js, TypeScript, Go, Java). The trust
+score would drop significantly and the discrepancy would appear in
+`agent inspect`.
 
-The format is designed so that lazy or careless manifests are visible,
-and thorough analysis is rewarded with a higher score. It is not designed
-to catch a sophisticated bad actor who understands the analysis system
-and deliberately evades it.
-
-For agents from untrusted sources in high-stakes environments, treat
-the trust score as a filter that reduces the cost of human review, not
-as a substitute for it.
+A policy of requiring a minimum trust score before accepting third-party
+packages is the recommended mitigation.
 
 ---
 
 ## Responsible disclosure
 
-If you discover a security vulnerability in agentpk itself — the CLI,
-the packaging format, the analysis system, or the validation pipeline —
-please report it responsibly.
+If you discover a security vulnerability in agentpk — the CLI,
+the packaging format, the analysis system, the REST API, or the
+validation pipeline — please report it responsibly.
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
 Email: security@nomotic.ai
 
-Include:
-- A description of the vulnerability
-- Steps to reproduce
-- The agentpk version affected
-- Your assessment of severity and impact
-
-We will acknowledge receipt within 48 hours and aim to produce a fix
-within 14 days for critical issues. We will credit you in the release
-notes unless you prefer to remain anonymous.
+Include a description of the vulnerability, steps to reproduce, the
+agentpk version affected, and your assessment of severity. We will
+acknowledge within 48 hours and aim to fix critical issues within 14
+days.
 
 ---
 
 ## Known limitations
 
-These are documented limitations, not vulnerabilities:
+**Dynamic code generation.** Static analysis cannot detect capabilities
+constructed at runtime from strings or loaded dynamically. Sandbox
+execution (Level 4) reduces this gap. Known dynamic import patterns
+(importlib, __import__, computed require()) are detected and flagged as
+advisory signals passed to Level 3 for LLM evaluation.
 
-**Dynamic code generation.** Static AST analysis cannot detect
-capabilities that are generated at runtime from strings, loaded from
-external sources, or constructed dynamically. An agent that builds a
-network request URL at runtime from concatenated strings may not trigger
-static analysis detection. Sandbox execution (Level 4) reduces this gap
-but does not eliminate it.
+**Pattern-based analysis for Go and Java.** These languages are analyzed
+using regex patterns on source text, not a full AST parser. Complex
+patterns — method chaining, aliased imports, reflection — may not be
+detected. The analysis record documents the extractor used.
 
-**Obfuscated code.** Code that is deliberately obfuscated to evade
-analysis will reduce trust score accuracy. The analysis system is not
-designed to defeat adversarial obfuscation.
+**Node.js fallback mode.** If Node.js is not available on PATH, the
+Node.js extractor falls back to pattern-based analysis. The analysis
+record documents which mode ran.
 
-**Multi-file dynamic imports.** Python's `importlib` and `__import__`
-dynamic import mechanisms may not be detected by AST analysis in all
-cases. Known patterns are detected. Unknown dynamic import patterns may
-be missed.
+**Sandbox coverage is not complete.** The Level 4 sandbox runs for a
+limited time with a test invocation. Code paths triggered only under
+specific conditions may not execute. A timeout advisory signal is
+recorded when the sandbox reaches its time limit; Level 4's contribution
+is reduced by a 0.8 confidence modifier rather than discarded entirely.
 
-**Node.js analysis is regex-based.** JavaScript and TypeScript files are
-analyzed using pattern matching, not a full AST parser. Complex code
-patterns may not be detected.
+**REST API authentication.** The API server started with `agent serve`
+does not require authentication by default. When exposing the API on a
+network, restrict access at the network or reverse proxy layer.
+Authentication will be added in a future release.
 
-**Sandbox coverage is not complete.** The Level 4 sandbox runs the agent
-for a limited time with a test invocation. Code paths that only execute
-under specific conditions, with specific inputs, or after extended
-operation may not be triggered during sandbox analysis.
+**Obfuscated code.** The analysis system flags known obfuscation
+patterns as advisory signals. It is not designed to defeat adversarial
+obfuscation comprehensively.
 
 ---
 
 ## Dependency security
 
-agentpk's core dependencies:
+Core dependencies:
 
-| Package | Purpose | Notes |
-|---|---|---|
-| `click` | CLI framework | Well-maintained, widely used |
-| `pyyaml` | YAML parsing | Use `yaml.safe_load` only — enforced |
-| `pydantic` | Data validation | v2, type-safe |
-| `rich` | Terminal output | No network access |
-| `cryptography` | Signing operations | OpenSSL bindings |
+| Package | Purpose |
+|---------|---------|
+| `click` | CLI framework |
+| `pyyaml` | YAML parsing — `yaml.safe_load` only, enforced |
+| `pydantic` | Data validation (v2) |
+| `rich` | Terminal output — no network access |
+| `cryptography` | Signing operations (OpenSSL bindings) |
 
-agentpk does not make network calls during normal operation. `agent
-analyze --level 3` calls an LLM API using `urllib.request` from the
-Python stdlib. No third-party HTTP library is used for this.
+API extras (`pip install agentpk[api]`):
 
-The `openai` and `anthropic` Python SDKs are not dependencies. LLM API
-calls are made directly to avoid transitive dependency exposure.
+| Package | Purpose |
+|---------|---------|
+| `fastapi` | REST API framework |
+| `uvicorn` | ASGI server |
+| `python-multipart` | File upload parsing |
+
+agentpk does not make network calls during normal operation. LLM API
+calls (Level 3 analysis) use `urllib.request` from the Python stdlib.
+The `openai` and `anthropic` SDKs are not dependencies.
 
 ---
 
 ## Version support
 
-Security fixes are applied to the current release only. We do not
-backport security fixes to older versions. Keep agentpk up to date:
+Security fixes apply to the current release only.
 
 ```bash
 pip install --upgrade agentpk
-```
-
-Check your current version:
-
-```bash
 agent --version
 ```

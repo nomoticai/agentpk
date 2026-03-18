@@ -1,6 +1,6 @@
 # agentpk
 
-The open source CLI for packaging AI agents.
+The open source CLI and Python SDK for packaging AI agents.
 
 ```
 pip install agentpk
@@ -36,6 +36,59 @@ that can read ZIP files can open it.
 The manifest is the important part. It tells runtimes how to start your
 agent and tells registries how to list it. One file, two audiences.
 
+## Python SDK
+
+All CLI operations are available as typed Python functions:
+
+```python
+from agentpk import pack, analyze, validate, inspect_package, init
+
+# Pack an agent
+result = pack("./my-agent", analyze=True)
+print(result.trust_score)    # 87
+print(result.trust_label)    # "High"
+print(result.package_path)   # PosixPath('./dist/my-agent-1.0.0.agent')
+
+# Analyze without packing
+analysis = analyze("./my-agent", levels=[1, 2, 3])
+print(analysis.discrepancy_count)   # 0
+
+# Validate
+val = validate("./my-agent")
+print(val.valid)    # True
+
+# Scaffold a new project
+r = init("my-node-agent", runtime="nodejs")
+print(r.project_dir)   # PosixPath('./my-node-agent')
+```
+
+All functions return typed dataclasses. Errors raise typed exceptions
+(`AgentpkError`, `ManifestError`, `PackagingError`, `AnalysisError`,
+`PackageNotFoundError`) — no `sys.exit()`, no string parsing.
+
+## Multi-language support
+
+agentpk packages agents written in any language. The manifest declares
+the runtime; analysis depth depends on the language:
+
+| Language | Analysis | Extractor |
+|----------|----------|-----------|
+| Python | Full AST | stdlib `ast` module |
+| Node.js | Full AST | acorn (via bundled helper) |
+| TypeScript | Full AST | @typescript-eslint/parser |
+| Go | Pattern-based | Regex on source text |
+| Java | Pattern-based | Regex on source text |
+| Other | Structural only | Level 2 skipped, reason logged |
+
+Scaffold for any runtime:
+
+```bash
+agent init my-node-agent --runtime nodejs
+agent init my-go-agent --runtime go
+agent init my-java-agent --runtime java
+agent init my-ts-agent --runtime typescript
+```
+
 ## Naming convention
 
 Agent names must be lowercase with hyphens and digits only. They must start
@@ -64,10 +117,47 @@ with a letter.
 | `agent sign <file>` | Sign a `.agent` file with a private key |
 | `agent verify <file>` | Verify the signature on a `.agent` file |
 | `agent keygen` | Generate an RSA key pair for signing |
+| `agent serve` | Start the REST API and packaging UI |
+
+## REST API and packaging UI
+
+Package and certify agents from a browser or remote system without the CLI:
+
+```bash
+pip install agentpk[api]
+agent serve
+# API on http://localhost:8080
+# Packaging UI on http://localhost:8080
+```
+
+The UI accepts a ZIP of your agent directory, runs analysis, and returns
+a trust score with a download link — no terminal required.
+
+Via any HTTP client:
+
+```bash
+# Submit a packaging job
+curl -X POST http://localhost:8080/v1/packages \
+     -F "source=@my-agent.zip" \
+     -F "analyze=true" \
+     -F "levels=1,2,3"
+
+# Poll for completion
+curl http://localhost:8080/v1/packages/{job_id}
+
+# Download the .agent file
+curl http://localhost:8080/v1/packages/{job_id}/download -o my-agent.agent
+```
+
+Options:
+
+```bash
+agent serve --port 9000
+agent serve --host 127.0.0.1
+agent serve --reload          # dev mode
+```
 
 ## Listing agents
-
-Scan a directory for `.agent` files and display a summary table:
 
 ```bash
 agent list
@@ -76,13 +166,7 @@ agent list ./agents/ --recursive
 agent list ./agents/ --json
 ```
 
-`--recursive` walks subdirectories. `--json` prints machine-readable JSON
-instead of a Rich table. Invalid `.agent` files are included in the listing
-with a warning rather than causing the command to fail.
-
 ## Running agents
-
-Execute a packed `.agent` file as a subprocess:
 
 ```bash
 agent run my-agent-1.0.0.agent
@@ -93,9 +177,8 @@ agent run my-agent-1.0.0.agent -- --flag value
 ```
 
 The runner extracts the package to a temp directory, validates it, and
-launches the entry point using the runtime declared in the manifest
-(Python, Node.js, or TypeScript). Extra arguments after `--` are forwarded
-to the agent process.
+launches the entry point using the runtime declared in the manifest.
+Extra arguments after `--` are forwarded to the agent process.
 
 | Flag | Effect |
 |------|--------|
@@ -111,12 +194,11 @@ from sources you trust.
 agentpk can analyze agent source code and assign a trust score indicating
 how well the manifest matches what the code actually does.
 
-See [docs/agent_analyzer.md](docs/agent_analyzer.md) for the full
-architecture documentation.
+See [TRUST.md](TRUST.md) for the full trust score reference and
+[docs/agent_analyzer.md](docs/agent_analyzer.md) for the analysis
+architecture.
 
 ### Generating a manifest from code
-
-If you have agent source code but no `manifest.yaml`, generate one:
 
 ```bash
 agent generate ./my-agent
@@ -124,12 +206,9 @@ agent generate ./my-agent --level 3
 ```
 
 The generated manifest includes `# REVIEW` markers on fields that could
-not be determined from code analysis alone (display name, author, etc.).
+not be determined from code analysis alone.
 
 ### Packing with analysis
-
-Add `--analyze` to `agent pack` to run code analysis and embed a trust
-score in the package:
 
 ```bash
 agent pack my-agent/ --analyze
@@ -149,7 +228,7 @@ agent pack my-agent/ --analyze --level 3 --strict
 | Level | Source | Needs | Weight |
 |-------|--------|-------|--------|
 | 1 | Structural validation | Nothing | +20 pts |
-| 2 | Static AST analysis | Nothing | +30 pts |
+| 2 | Static analysis (AST or pattern-based) | Nothing | +30 pts |
 | 3 | LLM semantic analysis | API key | +25 pts |
 | 4 | Runtime sandbox | Docker | +25 pts |
 
@@ -166,14 +245,7 @@ The maximum score is 100 when all four levels pass with no discrepancies.
 | 40-59 | Low |
 | 0-39 | Unverified |
 
-When you inspect a package, the trust score is displayed. Packages without
-analysis show "unverified."
-
 ## Signing and verification
-
-agentpk includes built-in cryptographic signing so recipients can verify
-that a `.agent` file was produced by a trusted party and has not been
-modified.
 
 ### Generate a key pair
 
@@ -181,10 +253,8 @@ modified.
 agent keygen --out my-key.pem
 ```
 
-This creates two files:
-
-- `my-key.pem` -- RSA-2048 private key (keep secret)
-- `my-cert.pem` -- self-signed X.509 certificate (share with recipients)
+Creates `my-key.pem` (private key, keep secret) and `my-cert.pem`
+(certificate, share with recipients).
 
 ### Sign an agent
 
@@ -193,38 +263,23 @@ agent sign fraud-detection-1.0.0.agent --key my-key.pem
 agent sign fraud-detection-1.0.0.agent --key my-key.pem --signer "Acme AI"
 ```
 
-This produces a `.sig` file alongside the `.agent` file (e.g.
-`fraud-detection-1.0.0.agent.sig`). The `.sig` file is JSON containing the
-manifest hash, an RSA-PSS-SHA256 signature, and optional signer metadata.
-
 ### Verify a signature
 
 ```bash
 agent verify fraud-detection-1.0.0.agent --cert my-cert.pem
 ```
 
-Verification re-computes the manifest hash, compares it to the value in the
-`.sig` file, and cryptographically verifies the signature against the
-certificate. If the agent or signature has been tampered with, verification
-fails.
-
 ## Manifest structure
 
 The manifest has two zones:
 
-**Zone 1 (open core)** contains everything a runtime needs: identity fields
-(name, version, description), runtime configuration (language, entry point,
-dependencies), capabilities (tools your agent exposes), execution settings
-(scheduled, triggered, or on-demand), and resource requirements.
+**Zone 1 (open core)** — authored by the developer: identity, runtime,
+capabilities, permissions, execution settings, and resource requirements.
 
-**Zone 2 (_package)** is generated automatically at pack time. It contains
-hashes, timestamps, file counts, and package size. Never edit this zone by
-hand.
+**Zone 2 (_package)** — generated automatically at pack time: hashes,
+timestamps, file counts, and package size. Never edit by hand.
 
 ## Validation
-
-Validate a project directory or packed `.agent` file against the 6-stage
-validation pipeline:
 
 ```bash
 agent validate ./my-agent/
@@ -232,37 +287,23 @@ agent validate my-agent-1.0.0.agent
 agent validate my-agent-1.0.0.agent --verbose
 ```
 
-The `--verbose` flag displays a per-stage breakdown showing which stages
-passed, failed, or were skipped. Directories skip stages 5-6 (checksums
-and package integrity) since those only apply to packed files.
+The `--verbose` flag displays a per-stage breakdown. Directories skip
+stages 5-6 (checksums and package integrity) since those only apply to
+packed files.
 
-## Verifying Your Installation
-
-Run the built-in self-test suite to confirm agentpk is working correctly:
+## Verifying your installation
 
 ```bash
 agent test
-```
-
-This generates 14 temporary agent fixtures (4 valid, 10 invalid), runs the
-validation pipeline against each one, and reports pass/fail results. Add
-`--verbose` for per-test detail:
-
-```bash
 agent test --verbose
 ```
 
 ## Examples
 
-Five valid examples and eleven intentionally broken examples are included
-in `examples/`. See [examples/README.md](examples/README.md) for the full
-table.
+Five valid examples and eleven intentionally broken examples in `examples/`.
 
 ```bash
-# Pack a valid example
 agent pack examples/valid/fraud-detection
-
-# Confirm an invalid example is correctly rejected
 agent pack examples/invalid/04-invalid-name
 ```
 
@@ -275,9 +316,14 @@ See [SPEC.md](SPEC.md) for the full agent package format specification.
 ```bash
 pip install -e ".[dev]"
 pytest
+
+# With API extras
+pip install -e ".[dev,api]"
+pytest tests/test_api.py
 ```
 
-Dependencies: `click`, `pyyaml`, `pydantic`, `rich`, `cryptography`.
+Core dependencies: `click`, `pyyaml`, `pydantic`, `rich`, `cryptography`.
+API extras: `fastapi`, `uvicorn`, `python-multipart`.
 
 ## About
 

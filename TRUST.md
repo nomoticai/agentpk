@@ -44,23 +44,56 @@ Requires nothing. Runs on any machine.
 
 Skip penalty: -10 (no manifest present).
 
-### Level 2 — Static AST analysis (max +30 points)
+### Level 2 — Static code analysis (max +30 points)
 
-Walks every source file using Python's `ast` module (for Python agents)
-or regex-based analysis (for Node.js and TypeScript). Extracts:
+Analyzes every source file using language-specific extractors. The
+extractor architecture is pluggable — each language has its own
+extraction module producing a standard `StaticAnalysisFindings` record.
+All downstream discrepancy classification and scoring is language-agnostic.
+
+**Python** — full AST traversal using the stdlib `ast` module.
+Deterministic and deep. Detects imports, HTTP method classifications,
+tool framework registrations (LangChain, OpenAI functions, CrewAI,
+AutoGen), dynamic imports, and obfuscated calls.
+
+**Node.js** — AST-based using acorn via a bundled helper script.
+Falls back to pattern-based if Node.js is not on PATH; the analysis
+record documents which mode ran. Detects require/import statements,
+axios/fetch/http method calls, fs operations, child_process calls,
+process.env access, and LangChain.js tool registrations.
+
+**TypeScript** — extends the Node.js extractor using
+@typescript-eslint/parser. Falls back to the Node.js extractor if
+the TypeScript parser is unavailable.
+
+**Go** — pattern-based on source text, no subprocess required. Detects
+import blocks, net/http calls with method classification, os/ioutil file
+operations, exec.Command, and os.Getenv/LookupEnv.
+
+**Java** — pattern-based on source text. Detects import statements,
+HttpClient/OkHttpClient/RestTemplate usage, FileWriter/Files.write
+operations, Runtime.exec/ProcessBuilder, System.getenv, and Spring AI
+@Tool annotations.
+
+**Unsupported languages** — Level 2 is skipped with the reason
+`"no extractor available for language: <lang>"` recorded in the analysis
+block. The -20 skip penalty applies.
+
+Signals extracted across all languages:
 
 - All imports and external dependencies
-- Network calls (requests, httpx, aiohttp, LLM client libraries)
+- Network calls with HTTP method classification (GET, POST, PUT, DELETE, etc.)
 - File system operations (reads and writes, with scope detection)
 - Subprocess calls
 - Environment variable access
-- Tool framework registrations (LangChain, OpenAI functions, CrewAI, AutoGen)
+- Tool framework registrations (framework name, tool name, file, line)
 - Entry functions
 
-Compares findings against the manifest. Flags anything found in code
-that is not declared, and anything declared that is not found in code.
+Results are compared against the manifest. Findings in code not declared
+in the manifest, and declarations not found in code, both produce
+discrepancy records.
 
-Requires nothing. Runs on any machine. Results are deterministic.
+Requires nothing beyond the agentpk install. Results are deterministic.
 
 Skip penalty: -20.
 
@@ -89,6 +122,10 @@ were read, what external systems were contacted.
 Compares observed behavior against manifest declarations. The sandbox
 catches dynamic behavior that static analysis cannot — behavior that
 only appears at runtime, conditional on execution paths.
+
+If the sandbox reaches the time limit before completing, a timeout
+advisory signal is recorded and Level 4's contribution is multiplied
+by 0.8. Partial observation is retained and scored; it is not discarded.
 
 Requires Docker installed and running.
 
@@ -122,6 +159,13 @@ Discrepancies reduce the score of the level that found them:
 | Major | -10 per item | Code uses network but no tool declared |
 | Critical | -20 per item | Declared read scope but code does write |
 
+LLM-only findings (not confirmed by Level 2 static analysis) apply a
+0.5x weight modifier to their penalty. A major LLM-only finding
+contributes -5 effective penalty rather than -10.
+
+Sandbox timeout applies a 0.8x confidence modifier to Level 4's weight
+contribution. Partial observation is better than none.
+
 The floor is 0. Scores do not go negative.
 
 ---
@@ -149,6 +193,8 @@ Examples:
 - `psycopg2` imported but no database `data_class` declared
 - `requests.post` found but no write-scope tool declared
 - `subprocess.run` found but no execute-scope tool declared
+- `axios.post` in Node.js code but no write-scope tool declared
+- `exec.Command` in Go code but no subprocess capability declared
 
 **Unconfirmed declaration** — the manifest declares a capability but
 analysis could not confirm it exists in the code. This may mean the
@@ -165,6 +211,19 @@ code demonstrates a higher level. The most serious discrepancy type.
 Examples:
 - Tool declared as `scope: read` but code calls `requests.post`
 - Tool declared as `scope: read` but code calls `cursor.execute(INSERT ...)`
+- Tool declared as `scope: read` but Node.js code calls `fs.writeFile`
+
+---
+
+## Deduplication
+
+A capability detected as undeclared by both Level 2 and Level 3 produces
+one discrepancy record with `source: static+llm` and the full severity
+penalty applied once, not twice.
+
+A capability confirmed by Level 2, Level 3, and Level 4 produces one
+record with `source: triple-confirmed` — the highest evidential
+confidence classification.
 
 ---
 
@@ -194,8 +253,9 @@ A package without an analysis block shows:
 └──────────────────────┴────────────────────────────────────┘
 ```
 
-No analysis block means the package was built without `--analyze`. The
-manifest is a declaration only.
+No analysis block means the package was built without `--analyze`. This
+is a distinct state from a score of zero — zero means analysis ran and
+found significant problems; unverified means analysis was not performed.
 
 ---
 
@@ -216,9 +276,7 @@ as agents move toward production or cross team boundaries.
 
 **Minimum: 60 (Moderate)**
 
-Requires at least Level 1 and Level 2 to have run and passed. Static
-analysis should confirm the manifest is not materially inaccurate before
-an agent runs in a pre-production environment.
+Requires at least Level 1 and Level 2 to have run and passed.
 
 ```bash
 agent pack . --analyze --level 2
@@ -228,40 +286,29 @@ agent pack . --analyze --level 2
 
 **Minimum: 75 (High)**
 
-Requires Level 1, Level 2, and either Level 3 or Level 4 to have run.
-Both static analysis and a second verification method should confirm
-the manifest before an agent runs in production.
+Requires Level 1, Level 2, and either Level 3 or Level 4.
 
 ```bash
 agent pack . --analyze --level 3
-# or
-agent pack . --analyze --level 4
 ```
 
 ### Third-party and vendor agents
 
 **Minimum: 80**
 
-Agents arriving from outside your organization should have passed at
-least three analysis levels with no discrepancies. A score below 80
-should prompt a conversation with the vendor about what analysis was
-performed.
+Agents from outside your organization should have passed at least three
+analysis levels with no discrepancies.
 
 ### Security-sensitive environments
 
 **Minimum: 90 (Verified)**
-
-Requires all available levels to have passed with no discrepancies.
-Use `--strict` to enforce this at build time:
 
 ```bash
 agent pack . --analyze --level 4 --strict
 ```
 
 `--strict` causes the pack to fail if the requested level cannot be
-reached. A package that cannot be produced with a 90+ score should not
-be deployed in a security-sensitive environment without explicit review
-and exception approval.
+reached.
 
 ---
 
@@ -269,30 +316,25 @@ and exception approval.
 
 **It does not guarantee the agent is safe to run.** A score of 100 means
 the manifest accurately describes the code. It does not mean the code
-does something appropriate, well-designed, or free of vulnerabilities.
+is appropriate, well-designed, or free of vulnerabilities.
 
-**It does not guarantee complete coverage.** Static analysis can miss
-dynamically constructed code. LLM analysis can miss things static
-analysis catches. Sandbox execution is best-effort and may not trigger
-all code paths. No analysis system provides complete coverage.
+**It does not guarantee complete coverage.** No analysis system provides
+complete coverage. Static analysis misses dynamically constructed code.
+LLM analysis misses things static analysis catches. Sandbox execution
+may not trigger all code paths.
 
-**It does not prevent a determined bad actor.** Someone who understands
-how the analysis works can potentially construct code that passes
-analysis while concealing capabilities. The trust score is a
+**It does not prevent a determined bad actor.** The trust score is a
 verification tool for honest manifests, not a security control against
 adversarial ones.
 
 **It does not replace security review.** For high-stakes agents in
-sensitive environments, human security review of the source code remains
-appropriate. The trust score reduces the burden of that review — it
-tells reviewers where to focus and what the automated analysis already
-confirmed. It does not replace it.
+sensitive environments, human review of source code remains appropriate.
+The trust score reduces the burden of that review — it does not
+replace it.
 
 ---
 
 ## Generating a trust score
-
-Add `--analyze` to any `agent pack` command:
 
 ```bash
 # Level 2 only — no external dependencies
@@ -308,9 +350,14 @@ agent pack . --analyze
 agent pack . --analyze --level 3 --strict
 ```
 
-To generate a manifest from code before packing:
+Via the Python SDK:
 
-```bash
-agent generate .          # analyzes code and produces manifest.yaml
-agent pack . --analyze    # verifies manifest against code and packs
+```python
+from agentpk import analyze, pack
+
+result = analyze("./my-agent", levels=[1, 2, 3])
+print(result.trust_score, result.trust_label)
+
+result = pack("./my-agent", analyze=True)
+print(result.trust_score, result.package_path)
 ```
