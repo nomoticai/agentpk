@@ -1,4 +1,0 @@
-*.agent
-__pycache__/
-*.py[cod]
-.venv/

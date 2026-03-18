@@ -1,4 +1,0 @@
-# Add your agent's Python dependencies here, one per line.
-# Example:
-# requests>=2.28
-# pydantic>=2.0
