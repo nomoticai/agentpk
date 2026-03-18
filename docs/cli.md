@@ -50,7 +50,7 @@ agent pack <source> --analyze --level 3 --strict
 ```
 
 Validates the source directory, generates checksums, injects `_package`
-metadata, creates a ZIP archive, and post-verifies the result.
+metadata, creates the `.agent` archive, and post-verifies the result.
 
 | Argument / Flag | Description |
 |-----------------|-------------|

@@ -377,7 +377,7 @@ def validate_package(package_path: Path) -> ValidationResult:
         return result
 
     if not zipfile.is_zipfile(package_path):
-        result.add_error(f"Not a valid ZIP archive: {package_path}")
+        result.add_error(f"Not a valid .agent archive: {package_path}")
         return result
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -386,7 +386,7 @@ def validate_package(package_path: Path) -> ValidationResult:
             with zipfile.ZipFile(package_path, "r") as zf:
                 zf.extractall(tmp_dir)
         except zipfile.BadZipFile as exc:
-            result.add_error(f"Corrupt ZIP archive: {exc}")
+            result.add_error(f"Corrupt .agent archive: {exc}")
             return result
 
         # Stages 1–4

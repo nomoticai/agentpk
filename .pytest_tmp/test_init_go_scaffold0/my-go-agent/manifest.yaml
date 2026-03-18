@@ -1,0 +1,14 @@
+spec_version: "1.0"
+name: my-go-agent
+version: "0.1.0"
+description: "TODO: Describe what this agent does."
+runtime:
+  language: go
+  language_version: "1.21"
+  entry_point: main.go
+  entry_function: main
+  dependencies: go.mod
+capabilities:
+  tools: []
+execution:
+  type: on-demand

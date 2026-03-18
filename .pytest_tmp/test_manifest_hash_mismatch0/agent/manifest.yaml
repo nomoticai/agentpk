@@ -1,0 +1,19 @@
+spec_version: '1.0'
+name: test-agent
+version: 0.1.0
+description: A test agent.
+runtime:
+  language: python
+  language_version: '3.11'
+  entry_point: main.py
+execution:
+  type: on-demand
+_package:
+  format: agent-package-format
+  format_version: '1.0'
+  packaged_at: '2025-01-01T00:00:00Z'
+  packaged_by: test
+  manifest_hash: sha256:000wronghash000
+  files_hash: sha256:placeholder
+  total_files: 1
+  package_size_bytes: 0

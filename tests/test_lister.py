@@ -49,7 +49,7 @@ class TestListAgents:
 
     def test_invalid_file(self, tmp_path: Path) -> None:
         bad = tmp_path / "bad.agent"
-        bad.write_text("not a zip file")
+        bad.write_text("not a valid archive")
         agents = list_agents(tmp_path)
         assert len(agents) == 1
         assert agents[0].valid is False

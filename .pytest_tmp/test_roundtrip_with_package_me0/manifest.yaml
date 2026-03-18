@@ -1,0 +1,19 @@
+spec_version: "1.0"
+name: pkg-rt
+version: "2.0.0"
+description: "Round-trip with package."
+runtime:
+  language: go
+  language_version: "1.21"
+  entry_point: main.go
+execution:
+  type: triggered
+_package:
+  format: agent-package-format
+  format_version: "1.0"
+  packaged_at: "2025-06-01T12:00:00Z"
+  packaged_by: agentpk
+  manifest_hash: "sha256:aaa"
+  files_hash: "sha256:bbb"
+  total_files: 3
+  package_size_bytes: 2048

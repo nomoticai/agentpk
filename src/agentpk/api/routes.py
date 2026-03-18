@@ -82,14 +82,14 @@ def _run_pack_job(job_id: str, source_dir: Path, out_dir: Path, options: PackOpt
 
 @router.post("/v1/packages", response_model=PackResponse, status_code=202)
 async def create_package(
-    source: UploadFile = File(..., description="ZIP archive of the agent directory"),
+    source: UploadFile = File(..., description="Agent directory archive"),
     analyze: bool = Form(False),
     levels: str = Form("", description="Comma-separated level numbers, e.g. '1,2,3'"),
     strict: bool = Form(False),
     sandbox_timeout: int = Form(30),
 ):
     """
-    Submit an agent directory (as a ZIP) for packaging.
+    Submit an agent directory for packaging.
 
     Returns a job_id immediately. Poll GET /v1/packages/{job_id} for status.
     When status is 'complete', download from GET /v1/packages/{job_id}/download.
@@ -109,7 +109,7 @@ async def create_package(
         sandbox_timeout=sandbox_timeout,
     )
 
-    # Save uploaded ZIP to temp location
+    # Save uploaded archive to temp location
     tmp_upload = tempfile.mktemp(suffix=".zip")
     try:
         content = await source.read()
@@ -118,7 +118,7 @@ async def create_package(
     except Exception as e:
         raise HTTPException(500, f"Failed to save upload: {e}")
 
-    # Extract ZIP to temp source dir
+    # Extract archive to temp source dir
     source_dir = Path(tempfile.mkdtemp(prefix="agentpk_src_"))
     out_dir = Path(tempfile.mkdtemp(prefix="agentpk_out_"))
 
@@ -127,11 +127,11 @@ async def create_package(
     except Exception as e:
         shutil.rmtree(source_dir, ignore_errors=True)
         shutil.rmtree(out_dir, ignore_errors=True)
-        raise HTTPException(400, f"Invalid ZIP archive: {e}")
+        raise HTTPException(400, f"Invalid archive: {e}")
     finally:
         Path(tmp_upload).unlink(missing_ok=True)
 
-    # If the ZIP contains a single top-level directory, use that as source
+    # If the archive contains a single top-level directory, use that as source
     contents = list(source_dir.iterdir())
     if len(contents) == 1 and contents[0].is_dir():
         source_dir = contents[0]

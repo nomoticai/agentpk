@@ -5,14 +5,14 @@
 
 ## Overview
 
-The `.agent` format is a ZIP-based archive for packaging portable AI agents.
+The `.agent` format is a compressed archive for packaging portable AI agents.
 Every `.agent` file contains a `manifest.yaml` describing the agent, the
 agent source code, and a `checksums.sha256` integrity file.
 
 ## Archive layout
 
 ```
-my-agent-0.1.0.agent          (ZIP archive)
+my-agent-0.1.0.agent          (compressed archive)
   manifest.yaml                Zone 1 + Zone 2
   checksums.sha256             SHA-256 hashes for all user files
   src/agent.py                 Entry point (example)

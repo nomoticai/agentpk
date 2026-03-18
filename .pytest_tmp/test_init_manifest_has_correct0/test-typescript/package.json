@@ -1,0 +1,10 @@
+{
+  "name": "test-typescript",
+  "version": "0.1.0",
+  "description": "TODO: Describe what this agent does.",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js"
+  },
+  "dependencies": {}
+}

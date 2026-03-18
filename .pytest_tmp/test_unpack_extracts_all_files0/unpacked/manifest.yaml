@@ -1,0 +1,23 @@
+spec_version: '1.0'
+name: my-agent
+version: 0.1.0
+description: A test agent.
+runtime:
+  language: python
+  language_version: '3.11'
+  entry_point: src/agent.py
+  entry_function: main
+  dependencies: requirements.txt
+capabilities:
+  tools: []
+execution:
+  type: on-demand
+_package:
+  format: agent-package-format
+  format_version: '1.0'
+  packaged_at: '2026-03-18T18:40:56.377241+00:00'
+  packaged_by: agentpk/0.2.2
+  manifest_hash: sha256:81489bd88ee14bfc0eedf71270086fbf19be029b5041c1cdea3ff129efe4bc0c
+  files_hash: sha256:50d4180202dab44ec48781141e40fe76fb6657c171b814203bb075d9a956da4e
+  total_files: 3
+  package_size_bytes: 1050

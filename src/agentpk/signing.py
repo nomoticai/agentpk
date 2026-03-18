@@ -1,24 +1,32 @@
-"""Cryptographic signing and verification for .agent files."""
+"""
+agentpk signing — Ed25519
+
+Agent packages are signed with Ed25519 private keys and verified with
+the corresponding public keys. Ed25519 is the modern standard used by
+SSH, Signal, Let's Encrypt, and Git.
+
+Key format: raw PEM-encoded Ed25519 private/public keys.
+Signature format: JSON .sig file alongside the .agent archive.
+"""
 
 from __future__ import annotations
 
-import base64
 import json
-import tempfile
-import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, rsa, utils
-from cryptography.x509 import (
-    CertificateBuilder,
-    Name,
-    NameAttribute,
-    random_serial_number,
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
 )
-from cryptography.x509.oid import NameOID
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+    load_pem_private_key,
+    load_pem_public_key,
+)
 
 from agentpk.constants import MANIFEST_FILENAME
 from agentpk.manifest import compute_manifest_hash
@@ -28,49 +36,37 @@ from agentpk.manifest import compute_manifest_hash
 # Key generation
 # ---------------------------------------------------------------------------
 
-def generate_keypair(
-    key_path: Path,
-    cert_path: Path,
-) -> None:
-    """Generate an RSA-2048 private key and self-signed certificate.
+def generate_keypair(private_key_path: Path) -> tuple[Path, Path]:
+    """
+    Generate an Ed25519 keypair.
 
     Args:
-        key_path: Where to write the PEM-encoded private key.
-        cert_path: Where to write the PEM-encoded certificate.
+        private_key_path: Where to write the private key (e.g. my-key.pem)
+
+    Returns:
+        (private_key_path, public_key_path)
+        Public key is written alongside private key as my-key.pub.pem
     """
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-    )
+    private_key = Ed25519PrivateKey.generate()
+    public_key = private_key.public_key()
 
     # Write private key
-    key_path.write_bytes(
-        private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption(),
-        )
+    private_pem = private_key.private_bytes(
+        encoding=Encoding.PEM,
+        format=PrivateFormat.PKCS8,
+        encryption_algorithm=NoEncryption(),
     )
+    private_key_path.write_bytes(private_pem)
 
-    # Build self-signed certificate
-    subject = issuer = Name([
-        NameAttribute(NameOID.COMMON_NAME, "agentpk-signer"),
-    ])
-
-    import datetime as dt
-
-    cert = (
-        CertificateBuilder()
-        .subject_name(subject)
-        .issuer_name(issuer)
-        .public_key(private_key.public_key())
-        .serial_number(random_serial_number())
-        .not_valid_before(dt.datetime.now(dt.timezone.utc))
-        .not_valid_after(dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=3650))
-        .sign(private_key, hashes.SHA256())
+    # Write public key alongside private key
+    public_key_path = private_key_path.with_suffix('.pub.pem')
+    public_pem = public_key.public_bytes(
+        encoding=Encoding.PEM,
+        format=PublicFormat.SubjectPublicKeyInfo,
     )
+    public_key_path.write_bytes(public_pem)
 
-    cert_path.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+    return private_key_path, public_key_path
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +75,9 @@ def generate_keypair(
 
 def _extract_manifest_hash(agent_path: Path) -> str:
     """Compute the manifest hash from a packed .agent file."""
+    import tempfile
+    import zipfile
+
     with tempfile.TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
         with zipfile.ZipFile(agent_path, "r") as zf:
@@ -90,14 +89,17 @@ def sign_agent(
     agent_path: Path,
     key_path: Path,
     *,
-    signer: Optional[str] = None,
-    sig_path: Optional[Path] = None,
+    signer: str | None = None,
+    sig_path: Path | None = None,
 ) -> Path:
-    """Sign a .agent file and write a .sig file.
+    """Sign a .agent file with an Ed25519 private key.
+
+    Produces a .sig file containing the manifest hash, Ed25519 signature,
+    algorithm identifier, and optional signer metadata.
 
     Args:
         agent_path: Path to the .agent file to sign.
-        key_path: Path to the PEM-encoded private key.
+        key_path: Path to Ed25519 private key (PEM).
         signer: Optional signer identity string.
         sig_path: Output .sig file path (default: <agent_path>.sig).
 
@@ -111,30 +113,27 @@ def sign_agent(
         sig_path = agent_path.parent / (agent_path.name + ".sig")
 
     # Load private key
-    private_key = serialization.load_pem_private_key(
-        key_path.read_bytes(),
-        password=None,
-    )
+    private_key = load_pem_private_key(key_path.read_bytes(), password=None)
+
+    if not isinstance(private_key, Ed25519PrivateKey):
+        raise ValueError(
+            f"Key at {key_path} is not an Ed25519 private key. "
+            f"Generate a new keypair with: agent keygen --out {key_path}"
+        )
 
     # Compute manifest hash
     manifest_hash = _extract_manifest_hash(agent_path)
 
     # Sign the hash bytes
-    hash_bytes = manifest_hash.encode("utf-8")
-    signature = private_key.sign(  # type: ignore[union-attr]
-        hash_bytes,
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=padding.PSS.MAX_LENGTH,
-        ),
-        hashes.SHA256(),
-    )
+    message = manifest_hash.encode("utf-8")
+    signature_bytes = private_key.sign(message)
+    signature_hex = signature_bytes.hex()
 
     sig_data = {
         "agent": agent_path.name,
         "manifest_hash": manifest_hash,
-        "algorithm": "RSA-PSS-SHA256",
-        "signature": base64.b64encode(signature).decode("ascii"),
+        "algorithm": "ed25519",
+        "signature": signature_hex,
         "signed_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -155,22 +154,24 @@ def sign_agent(
 
 def verify_agent(
     agent_path: Path,
-    cert_path: Path,
+    public_key_path: Path,
     *,
-    sig_path: Optional[Path] = None,
+    sig_path: Path | None = None,
 ) -> tuple[bool, str]:
-    """Verify the signature on a .agent file.
+    """Verify the Ed25519 signature on a .agent file.
 
     Args:
         agent_path: Path to the .agent file.
-        cert_path: Path to the PEM-encoded certificate.
+        public_key_path: Path to Ed25519 public key (PEM, .pub.pem).
         sig_path: Path to the .sig file (default: <agent_path>.sig).
 
     Returns:
         (is_valid, message) tuple.
     """
+    from cryptography.exceptions import InvalidSignature
+
     agent_path = agent_path.resolve()
-    cert_path = cert_path.resolve()
+    public_key_path = public_key_path.resolve()
 
     if sig_path is None:
         sig_path = agent_path.parent / (agent_path.name + ".sig")
@@ -184,17 +185,16 @@ def verify_agent(
     except (json.JSONDecodeError, OSError) as exc:
         return False, f"Failed to read signature file: {exc}"
 
-    # Load certificate and extract public key
-    try:
-        cert = serialization.load_pem_public_key(cert_path.read_bytes())
-    except Exception:
-        # Try loading as an X.509 certificate instead
-        from cryptography.x509 import load_pem_x509_certificate
-        try:
-            x509_cert = load_pem_x509_certificate(cert_path.read_bytes())
-            cert = x509_cert.public_key()
-        except Exception as exc:
-            return False, f"Failed to load certificate: {exc}"
+    algorithm = sig_data.get("algorithm")
+    if algorithm != "ed25519":
+        return False, (
+            f"Unsupported signature algorithm: {algorithm!r}. "
+            f"This package was signed with an older version of agentpk. "
+            f"Re-sign with: agent sign {agent_path}"
+        )
+
+    stored_hash = sig_data.get("manifest_hash", "")
+    signature_hex = sig_data.get("signature", "")
 
     # Re-compute manifest hash
     try:
@@ -202,31 +202,34 @@ def verify_agent(
     except Exception as exc:
         return False, f"Failed to read agent file: {exc}"
 
-    # Compare hashes
-    stored_hash = sig_data.get("manifest_hash", "")
+    # Compare hashes — fast fail
     if current_hash != stored_hash:
         return False, (
             "Manifest hash mismatch. The agent file has been modified since signing."
         )
 
-    # Verify cryptographic signature
-    signature = base64.b64decode(sig_data.get("signature", ""))
-    hash_bytes = stored_hash.encode("utf-8")
-
+    # Load public key
     try:
-        cert.verify(  # type: ignore[union-attr]
-            signature,
-            hash_bytes,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH,
-            ),
-            hashes.SHA256(),
+        public_key = load_pem_public_key(public_key_path.read_bytes())
+    except Exception as exc:
+        return False, f"Failed to load public key: {exc}"
+
+    if not isinstance(public_key, Ed25519PublicKey):
+        return False, (
+            f"Key at {public_key_path} is not an Ed25519 public key."
         )
-    except Exception:
+
+    # Verify signature
+    try:
+        signature_bytes = bytes.fromhex(signature_hex)
+        message = stored_hash.encode("utf-8")
+        public_key.verify(signature_bytes, message)
+    except InvalidSignature:
         return False, (
             "Signature verification failed. "
             "The agent file has been modified since it was signed."
         )
+    except Exception as exc:
+        return False, f"Signature verification error: {exc}"
 
     return True, "Verified. Agent has not been modified since signing."

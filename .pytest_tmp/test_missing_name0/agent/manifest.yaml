@@ -1,0 +1,9 @@
+spec_version: "1.0"
+version: "0.1.0"
+description: "no name"
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: main.py
+execution:
+  type: on-demand

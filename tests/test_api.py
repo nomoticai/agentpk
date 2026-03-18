@@ -20,7 +20,7 @@ def client():
 
 @pytest.fixture
 def agent_zip(tmp_path, python_agent_fixture):
-    """Create a ZIP of a valid agent directory."""
+    """Create an archive of a valid agent directory for upload."""
     zip_path = tmp_path / "agent.zip"
     with zipfile.ZipFile(zip_path, "w") as zf:
         for f in python_agent_fixture.rglob("*"):
@@ -96,8 +96,8 @@ class TestPackEndpoint:
         assert dl.status_code == 200
         assert dl.headers["content-type"] == "application/octet-stream"
 
-    def test_invalid_zip_returns_400(self, client):
-        fake_zip = io.BytesIO(b"not a zip file")
+    def test_invalid_archive_returns_400(self, client):
+        fake_zip = io.BytesIO(b"not a valid archive")
         r = client.post(
             "/v1/packages",
             files={"source": ("agent.zip", fake_zip, "application/zip")},

@@ -52,7 +52,7 @@ def _collect_files(source_dir: Path) -> list[Path]:
 
 
 def _create_zip(source_dir: Path, output_path: Path) -> int:
-    """Create a ZIP archive of *source_dir* at *output_path*.
+    """Create a compressed archive of *source_dir* at *output_path*.
 
     Returns the archive size in bytes.
     """
@@ -110,7 +110,7 @@ def pack(
 
     1. Validate the source directory (stages 1-5).
     2. Generate checksums, inject ``_package`` metadata.
-    3. Create a ZIP archive.
+    3. Create the ``.agent`` archive.
     4. Post-verify with :func:`validate_package`.
     5. Restore the source directory to its original state.
     """
@@ -165,7 +165,7 @@ def pack(
         manifest_hash = compute_manifest_hash(manifest_path)
         files_hash = compute_files_hash(user_files, source_dir)
 
-        # ── First pass: inject _package with size=0, build ZIP ────────
+        # ── First pass: inject _package with size=0, build archive ────
         _inject_package_block(
             manifest_path,
             manifest_hash=manifest_hash,

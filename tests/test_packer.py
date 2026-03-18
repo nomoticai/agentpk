@@ -74,7 +74,7 @@ class TestPack:
         assert result.manifest_hash.startswith("sha256:")
         assert result.files_hash.startswith("sha256:")
 
-        # Must be a valid ZIP
+        # Must be a valid archive
         assert zipfile.is_zipfile(result.output_path)
 
     def test_pack_output_contains_manifest_and_checksums(self, tmp_path: Path) -> None:
@@ -179,7 +179,7 @@ class TestUnpack:
 
     def test_unpack_corrupt_file_raises(self, tmp_path: Path) -> None:
         bad_file = tmp_path / "bad.agent"
-        bad_file.write_bytes(b"not-a-zip")
+        bad_file.write_bytes(b"not-an-archive")
 
         with pytest.raises(PackageCorruptError):
             unpack(bad_file, tmp_path / "out")
@@ -190,7 +190,7 @@ class TestUnpack:
         result = pack(project)
         assert result.success and result.output_path is not None
 
-        # Tamper: modify a file inside the ZIP
+        # Tamper: modify a file inside the archive
         tampered = tmp_path / "tampered.agent"
         with zipfile.ZipFile(result.output_path, "r") as zf_in:
             with zipfile.ZipFile(tampered, "w") as zf_out:
@@ -225,7 +225,7 @@ class TestInspect:
 
     def test_inspect_invalid_file(self, tmp_path: Path) -> None:
         bad = tmp_path / "bad.agent"
-        bad.write_bytes(b"not a zip")
+        bad.write_bytes(b"not an archive")
 
         info = inspect(bad)
         assert info["manifest"] is None

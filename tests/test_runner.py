@@ -31,7 +31,7 @@ class TestRunAgent:
 
     def test_dry_run_invalid(self, tmp_path: Path) -> None:
         bad = tmp_path / "bad.agent"
-        bad.write_text("not a zip")
+        bad.write_text("not a valid archive")
         result = run_agent(bad, dry_run=True)
         assert result.success is False
         assert "Validation failed" in result.error

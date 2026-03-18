@@ -18,13 +18,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Level 4 info tooltip**: inline help explaining sandbox requirements
 
 ### Changed
+- **Signing migrated from RSA-2048 to Ed25519**
+  - `agent keygen` now produces Ed25519 keypairs (.pem + .pub.pem)
+  - `agent sign` now uses `--key` (private key) instead of `--key` + `--cert`
+  - `agent verify` now uses `--key` (public key .pub.pem) instead of `--cert`
+  - Signature files now include `"algorithm": "ed25519"` field
+  - Private key size: ~119 bytes (was ~1,700 bytes for RSA-2048)
+  - Signature size: 64 bytes (was 256 bytes for RSA-2048)
+  - Packages signed with RSA must be re-signed — no backward compatibility
 - **Packaging UI accepts folders directly**: users now select an agent folder
-  instead of preparing a ZIP file; client-side zipping via JSZip is transparent
+  instead of preparing an archive; client-side packaging is transparent
 - **Level 4 label**: renamed from "Level 4 (Docker)" to "Level 4 (Sandbox)" —
   no mention of Docker in user-facing UI text
 - **Button text**: initial state reads "Select an agent folder to begin";
   after folder selection reads "Package your agent"
-- **Drop zone text**: reads "Drag your agent folder here" (no mention of .zip)
+- **Drop zone text**: reads "Drag your agent folder here"
+
+### Notes
+- SHA-256 package integrity hashes are unchanged
+- Ed25519 is the current standard used by SSH, Signal, Let's Encrypt, and Git
 
 ---
 
@@ -80,7 +92,7 @@ Initial release of agentpk and the `.agent` open packaging standard.
 ### Added
 
 **Format**
-- `.agent` package format — ZIP archive with a structured manifest,
+- `.agent` package format — portable archive with a structured manifest,
   source files, dependency declarations, and generated checksums
 - `manifest.yaml` schema — full Zone 1 field specification covering
   identity, runtime, model preferences, framework, capabilities, 
@@ -126,7 +138,7 @@ Initial release of agentpk and the `.agent` open packaging standard.
 - `agent sign <file>` — cryptographically sign a `.agent` file with a
   private key
 - `agent verify <file>` — verify the signature on a `.agent` file
-- `agent keygen` — generate an RSA key pair for signing
+- `agent keygen` — generate an Ed25519 key pair for signing
 - `agent generate <dir>` — analyze source code and produce a
   `manifest.yaml`. Flags: `--level`, `--output`, `--force`
 - `agent test` — run the agentpk self-test suite to verify installation.

@@ -229,19 +229,41 @@ def diff(
 def sign(
     package: str | Path,
     *,
-    key: str | Path,
+    key: str | Path,          # Ed25519 private key (.pem)
+    signer: str | None = None,
     out: str | Path | None = None,
 ) -> Path:
-    """Sign a .agent archive with a private key."""
+    """
+    Sign a .agent archive with an Ed25519 private key.
+
+    Args:
+        package:  Path to .agent file
+        key:      Path to Ed25519 private key (.pem) — from agent keygen
+        signer:   Optional signer name embedded in the .sig metadata
+        out:      Output path for .sig file (default: package_path + .sig)
+
+    Returns:
+        Path to .sig file
+    """
     from agentpk._internal.signer import run_sign
-    return run_sign(Path(package), key=Path(key), out=Path(out) if out else None)
+    return run_sign(Path(package), key=Path(key), signer=signer,
+                    out=Path(out) if out else None)
 
 
 def verify(
     package: str | Path,
     *,
-    key: str | Path,
+    key: str | Path,          # Ed25519 public key (.pub.pem)
 ) -> bool:
-    """Verify the signature on a .agent archive."""
+    """
+    Verify the Ed25519 signature on a .agent archive.
+
+    Args:
+        package:  Path to .agent file
+        key:      Path to Ed25519 public key (.pub.pem) — from agent keygen
+
+    Returns:
+        True if signature is valid, False if invalid
+    """
     from agentpk._internal.signer import run_verify
     return run_verify(Path(package), key=Path(key))

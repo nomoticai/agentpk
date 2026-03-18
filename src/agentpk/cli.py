@@ -964,31 +964,31 @@ def sign(agent_file: Path, key: Path, signer: str | None) -> None:
 
 @cli.command()
 @click.argument("agent_file", type=click.Path(exists=True, path_type=Path))
-@click.option("--cert", required=True, type=click.Path(exists=True, path_type=Path), help="Path to PEM certificate.")
-def verify(agent_file: Path, cert: Path) -> None:
-    """Verify the signature on a .agent file.
+@click.option("--key", required=True, type=click.Path(exists=True, path_type=Path), help="Path to Ed25519 public key (.pub.pem).")
+def verify(agent_file: Path, key: Path) -> None:
+    """Verify the Ed25519 signature on a .agent file.
 
     \b
     Checks the .sig file alongside the .agent file:
-      agent verify fraud-detection-1.0.0.agent --cert my-cert.pem
+      agent verify fraud-detection-1.0.0.agent --key my-key.pub.pem
     """
     from agentpk.signing import verify_agent
 
     agent_file = Path(agent_file).resolve()
-    cert = Path(cert).resolve()
+    key = Path(key).resolve()
 
     console.print(f"  Verifying: [cyan]{agent_file.name}[/cyan]")
-    console.print(f"  Certificate: {cert}\n")
+    console.print(f"  Key: {key}\n")
 
-    valid, message = verify_agent(agent_file, cert)
+    valid, message = verify_agent(agent_file, key)
 
     if valid:
-        console.print(f"  [bold green]{message}[/bold green]")
+        console.print(f"  [bold green]✓ Signature valid[/bold green]")
         console.print(
             Panel("[bold green]Verification passed.[/bold green]", title="agent verify")
         )
     else:
-        err_console.print(f"  [bold red]ERROR:[/bold red] {message}")
+        err_console.print(f"  [bold red]✗ Signature invalid:[/bold red] {message}")
         err_console.print("[bold red]  Do not use this agent.[/bold red]")
         sys.exit(1)
 
@@ -998,39 +998,40 @@ def verify(agent_file: Path, cert: Path) -> None:
 # ---------------------------------------------------------------------------
 
 @cli.command()
-@click.option("--out", required=True, type=click.Path(path_type=Path), help="Output path for the private key PEM file.")
+@click.option("--out", default="agentpk-key.pem", type=click.Path(path_type=Path),
+              help="Output path for private key (default: agentpk-key.pem).")
 def keygen(out: Path) -> None:
-    """Generate a key pair for signing agents.
+    """Generate an Ed25519 keypair for signing .agent packages.
 
     \b
-    Generates an RSA-2048 private key and a self-signed certificate:
+    Creates two files:
+      my-key.pem      -- Ed25519 private key (keep secret, do not commit)
+      my-key.pub.pem  -- Ed25519 public key (share with recipients)
+
+    \b
       agent keygen --out my-key.pem
-
-    \b
-    This creates two files:
-      my-key.pem   -- private key (keep secret)
-      my-cert.pem  -- public certificate (share with recipients)
     """
     from agentpk.signing import generate_keypair
 
     out = Path(out).resolve()
-    cert_path = out.parent / out.name.replace("-key", "-cert").replace("key", "cert")
-    if cert_path == out:
-        cert_path = out.parent / (out.stem + "-cert" + out.suffix)
 
-    console.print("  Generating RSA-2048 key pair...")
+    if out.exists():
+        err_console.print(f"[bold red]Error:[/bold red] {out} already exists. Choose a different name.")
+        sys.exit(1)
+
+    console.print("  Generating Ed25519 key pair...")
 
     try:
-        generate_keypair(out, cert_path)
+        private_path, public_path = generate_keypair(out)
     except Exception as exc:
         err_console.print(f"\n[bold red]Key generation failed:[/bold red] {exc}")
         sys.exit(1)
 
-    console.print(f"  Private key: [cyan]{out}[/cyan]")
-    console.print(f"  Public cert: [cyan]{cert_path}[/cyan]")
+    console.print(f"  Private key: [cyan]{private_path}[/cyan]  (keep secret — do not commit)")
+    console.print(f"  Public key:  [cyan]{public_path}[/cyan]  (share with recipients for verification)")
     console.print()
-    console.print("  Keep the private key secret. Share the certificate with")
-    console.print("  recipients so they can verify agents you sign.")
+    console.print(f"  To sign a package:   agent sign my-agent-1.0.0.agent --key {private_path}")
+    console.print(f"  To verify a package: agent verify my-agent-1.0.0.agent --key {public_path}")
     console.print(
         Panel("[bold green]Key pair generated.[/bold green]", title="agent keygen")
     )

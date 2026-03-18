@@ -1,0 +1,12 @@
+spec_version: "1.0"
+name: bad-fw
+version: "0.1.0"
+description: "Bad framework."
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: main.py
+framework:
+  name: django
+execution:
+  type: on-demand

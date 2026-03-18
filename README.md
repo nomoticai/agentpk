@@ -28,10 +28,9 @@ agent sign my-agent-0.1.0.agent --key my-key.pem
 
 ## What is the .agent format?
 
-An `.agent` file is a ZIP archive containing your agent source code, a
+An `.agent` file is a portable archive containing your agent source code, a
 `manifest.yaml` that describes what your agent does and what it needs, and a
-`checksums.sha256` file that verifies nothing was tampered with. Any tool
-that can read ZIP files can open it.
+`checksums.sha256` file that verifies nothing was tampered with.
 
 The manifest is the important part. It tells runtimes how to start your
 agent and tells registries how to list it. One file, two audiences.
@@ -116,7 +115,7 @@ with a letter.
 | `agent run <file>` | Execute a packed `.agent` file as a subprocess |
 | `agent sign <file>` | Sign a `.agent` file with a private key |
 | `agent verify <file>` | Verify the signature on a `.agent` file |
-| `agent keygen` | Generate an RSA key pair for signing |
+| `agent keygen` | Generate an Ed25519 key pair for signing |
 | `agent serve` | Start the REST API and packaging UI |
 
 ## REST API and packaging UI
@@ -140,7 +139,7 @@ Via any HTTP client:
 ```bash
 # Submit a packaging job
 curl -X POST http://localhost:8080/v1/packages \
-     -F "source=@my-agent.zip" \
+     -F "source=@my-agent.agent" \
      -F "analyze=true" \
      -F "levels=1,2,3"
 
@@ -249,14 +248,15 @@ The maximum score is 100 when all four levels pass with no discrepancies.
 
 ## Signing and verification
 
-### Generate a key pair
+### Generate a keypair
 
 ```bash
 agent keygen --out my-key.pem
 ```
 
-Creates `my-key.pem` (private key, keep secret) and `my-cert.pem`
-(certificate, share with recipients).
+Creates two files:
+- `my-key.pem` — Ed25519 private key (keep secret, do not commit)
+- `my-key.pub.pem` — Ed25519 public key (share with recipients)
 
 ### Sign an agent
 
@@ -265,10 +265,14 @@ agent sign fraud-detection-1.0.0.agent --key my-key.pem
 agent sign fraud-detection-1.0.0.agent --key my-key.pem --signer "Acme AI"
 ```
 
+Produces `fraud-detection-1.0.0.agent.sig` — a JSON file containing the
+manifest hash, Ed25519 signature, algorithm identifier, and optional signer
+metadata.
+
 ### Verify a signature
 
 ```bash
-agent verify fraud-detection-1.0.0.agent --cert my-cert.pem
+agent verify fraud-detection-1.0.0.agent --key my-key.pub.pem
 ```
 
 ## Manifest structure

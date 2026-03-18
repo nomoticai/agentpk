@@ -92,7 +92,7 @@ agent pack my-agent/
 ```
 
 This produces `my-agent-0.1.0.agent` in the parent directory of your
-project. The `.agent` file is a ZIP archive containing your source code,
+project. The `.agent` file is a portable archive containing your source code,
 the manifest, and a `checksums.sha256` integrity file.
 
 ## Inspect

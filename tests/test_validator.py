@@ -55,7 +55,7 @@ def _build_agent_file(
     *,
     inject_package_block: bool = False,
 ) -> Path:
-    """Create a .agent ZIP from *agent_dir*, optionally with checksums and _package."""
+    """Create a .agent archive from *agent_dir*, optionally with checksums and _package."""
     # Generate checksums
     checksums = generate_checksums(agent_dir)
     write_checksums_file(checksums, agent_dir / CHECKSUMS_FILENAME)
@@ -499,7 +499,7 @@ class TestValidatePackage:
             _minimal_manifest(),
             files={"main.py": ""},
         )
-        # Build ZIP WITHOUT writing checksums
+        # Build archive WITHOUT writing checksums
         out = tmp_path / "nochecksum.agent"
         with zipfile.ZipFile(out, "w") as zf:
             for f in sorted(d.rglob("*")):
@@ -568,12 +568,12 @@ class TestValidatePackage:
         assert not r.is_valid
         assert any("manifest_hash" in (e.field or "") for e in r.errors)
 
-    def test_not_a_zip(self, tmp_path: Path) -> None:
-        bad = tmp_path / "not_zip.agent"
-        bad.write_text("this is not a zip", encoding="utf-8")
+    def test_not_a_valid_archive(self, tmp_path: Path) -> None:
+        bad = tmp_path / "not_valid.agent"
+        bad.write_text("this is not an archive", encoding="utf-8")
         r = validate_package(bad)
         assert not r.is_valid
-        assert any("ZIP" in e.message for e in r.errors)
+        assert any(".agent archive" in e.message for e in r.errors)
 
     def test_nonexistent_package(self, tmp_path: Path) -> None:
         r = validate_package(tmp_path / "missing.agent")

@@ -1,0 +1,11 @@
+spec_version: "1.0"
+name: test-agent
+version: "1.0.0"
+description: "A minimal test agent."
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+execution:
+  type: on-demand

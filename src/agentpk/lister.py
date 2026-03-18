@@ -86,7 +86,7 @@ def _read_summary(agent_path: Path) -> AgentSummary:
             packaged_at="",
             path=agent_path,
             valid=False,
-            error="not a valid ZIP archive",
+            error="not a valid .agent archive",
         )
     except Exception as exc:
         return AgentSummary(
