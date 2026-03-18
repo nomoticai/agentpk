@@ -130,8 +130,10 @@ agent serve
 # Packaging UI on http://localhost:8080
 ```
 
-The UI accepts a ZIP of your agent directory, runs analysis, and returns
-a trust score with a download link — no terminal required.
+The UI lets you select an agent folder directly from your browser, runs
+analysis, and returns a trust score with a download link — no terminal
+required. The UI automatically detects whether an LLM API key is
+configured and enables or disables Level 3 accordingly.
 
 Via any HTTP client:
 
@@ -230,7 +232,7 @@ agent pack my-agent/ --analyze --level 3 --strict
 | 1 | Structural validation | Nothing | +20 pts |
 | 2 | Static analysis (AST or pattern-based) | Nothing | +30 pts |
 | 3 | LLM semantic analysis | API key | +25 pts |
-| 4 | Runtime sandbox | Docker | +25 pts |
+| 4 | Runtime sandbox | Container runtime | +25 pts |
 
 Skipped levels subtract points (Level 3 skip: -15, Level 4 skip: -25).
 The maximum score is 100 when all four levels pass with no discrepancies.

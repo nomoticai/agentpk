@@ -195,6 +195,33 @@ def download_package(job_id: str):
     )
 
 
+@router.get("/v1/capabilities")
+def get_capabilities():
+    """
+    Returns what analysis levels are available in the current environment.
+    Used by the UI to show/disable options intelligently.
+    """
+    import os
+
+    anthropic_key = bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
+    openai_key = bool(os.environ.get("OPENAI_API_KEY", "").strip())
+    has_llm = anthropic_key or openai_key
+
+    # Determine which provider is configured
+    if anthropic_key:
+        llm_provider = "Anthropic (Claude)"
+    elif openai_key:
+        llm_provider = "OpenAI"
+    else:
+        llm_provider = None
+
+    return {
+        "level3_available": has_llm,
+        "llm_provider": llm_provider,
+        "level4_available": True,  # sandbox availability checked at pack time
+    }
+
+
 @router.get("/v1/health")
 def health():
     return {"status": "ok"}

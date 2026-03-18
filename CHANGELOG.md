@@ -7,6 +7,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.2] — 2026-03-18
+
+### Added
+- **Capabilities endpoint**: `GET /v1/capabilities` returns which analysis
+  levels are available (LLM key detected, provider name, sandbox availability)
+- **LLM key detection in UI**: Level 3 checkbox is automatically enabled or
+  disabled based on whether `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` is set;
+  shows provider name when available, info popup with setup instructions when not
+- **Level 4 info tooltip**: inline help explaining sandbox requirements
+
+### Changed
+- **Packaging UI accepts folders directly**: users now select an agent folder
+  instead of preparing a ZIP file; client-side zipping via JSZip is transparent
+- **Level 4 label**: renamed from "Level 4 (Docker)" to "Level 4 (Sandbox)" —
+  no mention of Docker in user-facing UI text
+- **Button text**: initial state reads "Select an agent folder to begin";
+  after folder selection reads "Package your agent"
+- **Drop zone text**: reads "Drag your agent folder here" (no mention of .zip)
+
 ---
 
 ## [0.2.1] — 2026-03-16

@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>agentpk — Package & Certify</title>
+<title>.agent — Package & Certify</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -74,6 +75,46 @@
     margin-bottom: 12px;
   }
   .levels label { margin-bottom: 0; }
+  .levels label.disabled { color: #6e7681; cursor: not-allowed; }
+  .l3-info {
+    display: none;
+    margin-left: 4px;
+    font-size: 12px;
+    color: #6e7681;
+  }
+  .l3-info-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #2d3139;
+    color: #6e7681;
+    font-size: 11px;
+    text-align: center;
+    line-height: 16px;
+    cursor: pointer;
+    margin-left: 4px;
+    position: relative;
+  }
+  .l3-info-icon:hover { color: #c9d1d9; background: #3d4149; }
+  .info-popup {
+    display: none;
+    position: absolute;
+    bottom: 24px;
+    left: -120px;
+    width: 360px;
+    background: #1c1f26;
+    border: 1px solid #4d9cf8;
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 13px;
+    color: #c9d1d9;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    z-index: 10;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+  .info-popup.open { display: block; }
   .btn {
     display: block;
     width: 100%;
@@ -207,16 +248,16 @@
 </head>
 <body>
 <div class="card">
-  <div class="logo">agentpk</div>
+  <div class="logo">.agent</div>
   <h1>Package &amp; Certify</h1>
 
   <div id="form-section">
     <div class="drop-zone" id="drop-zone">
       <div class="icon">&#x1F4E6;</div>
-      <p>Drag your agent directory here (as a <strong>.zip</strong>)<br>
+      <p>Drag your agent folder here<br>
          or <span id="browse-link">click to browse</span></p>
       <div class="file-selected" id="file-name"></div>
-      <input type="file" id="file-input" accept=".zip" style="display:none">
+      <input type="file" id="file-input" style="display:none" webkitdirectory multiple>
     </div>
 
     <div class="options">
@@ -227,8 +268,33 @@
       <div class="levels" id="levels-row">
         <label><input type="checkbox" class="level-cb" value="1" checked> Level 1</label>
         <label><input type="checkbox" class="level-cb" value="2" checked> Level 2</label>
-        <label><input type="checkbox" class="level-cb" value="3"> Level 3 (LLM)</label>
-        <label><input type="checkbox" class="level-cb" value="4"> Level 4 (Docker)</label>
+        <label id="level-3-wrapper">
+          <input type="checkbox" class="level-cb" value="3" id="level-3-cb">
+          <span id="level-3-label">Level 3 (LLM)</span>
+          <span class="l3-info" id="level-3-info">
+            No API key configured
+            <span class="l3-info-icon" id="level-3-info-icon">&#x24D8;
+              <div class="info-popup" id="level-3-popup">Level 3 uses an LLM to semantically verify your agent's manifest against its source code.
+
+To enable Level 3, set one of these environment variables before running 'agent serve':
+
+  ANTHROPIC_API_KEY=sk-ant-...
+  OPENAI_API_KEY=sk-...
+
+Uses claude-haiku or gpt-4o-mini. Cost is typically &lt; $0.01 per analysis.
+
+Restart 'agent serve' after setting the key.</div>
+            </span>
+          </span>
+        </label>
+        <label>
+          <input type="checkbox" class="level-cb" value="4"> Level 4 (Sandbox)
+          <span class="l3-info-icon" id="level-4-info-icon" style="position:relative">&#x24D8;
+            <div class="info-popup" id="level-4-popup">Level 4 runs your agent in an isolated execution environment, intercepts network calls, and observes runtime behavior.
+
+Requires a container runtime to be available on this machine. If unavailable, this level is skipped and the trust score reflects the skip penalty.</div>
+          </span>
+        </label>
       </div>
       <label>
         <input type="checkbox" id="opt-strict">
@@ -236,7 +302,7 @@
       </label>
     </div>
 
-    <button class="btn" id="pack-btn" disabled>Select a .zip to continue</button>
+    <button class="btn" id="pack-btn" disabled>Select an agent folder to begin</button>
   </div>
 
   <div class="status" id="status-section">
@@ -269,11 +335,68 @@
 
 <script>
   const API = '';  // relative - same origin as this page
-  let selectedFile = null;
+  let selectedEntries = null;
+  let selectedFolderName = null;
   let currentJobId = null;
   let pollTimer = null;
 
-  // -- File selection --
+  // -- Capabilities --
+
+  async function loadCapabilities() {
+    try {
+      const res = await fetch(API + '/v1/capabilities');
+      const caps = await res.json();
+      applyCapabilities(caps);
+    } catch (e) {
+      // API not reachable — disable L3 conservatively
+      applyCapabilities({ level3_available: false, llm_provider: null });
+    }
+  }
+
+  function applyCapabilities(caps) {
+    const l3cb = document.getElementById('level-3-cb');
+    const l3label = document.getElementById('level-3-label');
+    const l3info = document.getElementById('level-3-info');
+    const l3wrapper = document.getElementById('level-3-wrapper');
+
+    if (caps.level3_available) {
+      l3cb.disabled = false;
+      l3cb.checked = true;
+      l3label.textContent = 'Level 3 (LLM / ' + caps.llm_provider + ')';
+      l3info.style.display = 'none';
+      l3wrapper.classList.remove('disabled');
+    } else {
+      l3cb.disabled = true;
+      l3cb.checked = false;
+      l3label.textContent = 'Level 3 (LLM)';
+      l3info.style.display = 'inline';
+      l3wrapper.classList.add('disabled');
+    }
+  }
+
+  loadCapabilities();
+
+  // -- Info popups --
+
+  document.getElementById('level-3-info-icon').onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('level-3-popup').classList.toggle('open');
+  };
+
+  document.getElementById('level-4-info-icon').onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('level-4-popup').classList.toggle('open');
+  };
+
+  // Close popups on outside click
+  document.addEventListener('click', () => {
+    document.getElementById('level-3-popup').classList.remove('open');
+    document.getElementById('level-4-popup').classList.remove('open');
+  });
+
+  // -- File/folder selection --
 
   const dropZone = document.getElementById('drop-zone');
   const fileInput = document.getElementById('file-input');
@@ -284,7 +407,21 @@
   dropZone.onclick = (e) => { if (e.target !== browseLink) fileInput.click(); };
 
   fileInput.onchange = () => {
-    if (fileInput.files[0]) selectFile(fileInput.files[0]);
+    const files = Array.from(fileInput.files);
+    if (files.length === 0) return;
+
+    // Build entries from FileList (webkitdirectory gives relative paths)
+    const entries = files.map(f => ({
+      path: f.webkitRelativePath || f.name,
+      file: f
+    }));
+
+    // Folder name is the common prefix
+    const folderName = files[0].webkitRelativePath
+      ? files[0].webkitRelativePath.split('/')[0]
+      : 'agent';
+
+    selectEntries(entries, folderName);
   };
 
   dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); };
@@ -292,16 +429,68 @@
   dropZone.ondrop = (e) => {
     e.preventDefault();
     dropZone.classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    if (f && f.name.endsWith('.zip')) selectFile(f);
-    else showError('Please drop a .zip file.');
+
+    // Handle both folder drops (DataTransferItemList) and file drops
+    const items = e.dataTransfer.items;
+    if (items) {
+      // Use DataTransferItem API for folder support
+      const fileEntries = [];
+      const promises = [];
+      let rootName = null;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file') {
+          const entry = item.webkitGetAsEntry && item.webkitGetAsEntry();
+          if (entry) {
+            if (!rootName) rootName = entry.name;
+            if (entry.isFile && !entry.isDirectory) {
+              // Single file dropped — not a folder
+              showError('Please drop an agent folder, not a single file.');
+              return;
+            }
+            promises.push(collectEntries(entry, '', fileEntries));
+          }
+        }
+      }
+      Promise.all(promises).then(() => {
+        if (fileEntries.length > 0) {
+          selectEntries(fileEntries, rootName || 'agent');
+        } else {
+          showError('No files found in the dropped folder.');
+        }
+      });
+    }
   };
 
-  function selectFile(f) {
-    selectedFile = f;
-    document.getElementById('file-name').textContent = '\u2713 ' + f.name;
+  // Recursively collect files from a directory entry
+  function collectEntries(entry, path, results) {
+    return new Promise((resolve) => {
+      if (entry.isFile) {
+        entry.file(file => {
+          results.push({ path: path + entry.name, file });
+          resolve();
+        });
+      } else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        reader.readEntries(entries => {
+          const promises = entries.map(e =>
+            collectEntries(e, path + entry.name + '/', results)
+          );
+          Promise.all(promises).then(resolve);
+        });
+      } else {
+        resolve();
+      }
+    });
+  }
+
+  function selectEntries(entries, folderName) {
+    selectedEntries = entries;
+    selectedFolderName = folderName;
+    document.getElementById('file-name').textContent =
+      '\u2713 ' + folderName + ' (' + entries.length + ' files)';
     packBtn.disabled = false;
-    packBtn.textContent = 'Pack & Certify';
+    packBtn.textContent = 'Package your agent';
     hideError();
   }
 
@@ -317,11 +506,36 @@
   // -- Pack --
 
   packBtn.onclick = async () => {
-    if (!selectedFile) return;
+    if (!selectedEntries || selectedEntries.length === 0) return;
     startJob();
   };
 
   async function startJob() {
+    showStatus('Preparing...');
+    packBtn.disabled = true;
+
+    // Build ZIP from selected entries using JSZip
+    let zipBlob;
+    try {
+      const zip = new JSZip();
+      for (const entry of selectedEntries) {
+        // Skip hidden files and __pycache__
+        const parts = entry.path.split('/');
+        const isHidden = parts.some(p => p.startsWith('.') || p === '__pycache__');
+        if (isHidden) continue;
+        zip.file(entry.path, entry.file);
+      }
+      zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 1 }  // fast, not max compression
+      });
+    } catch (e) {
+      showError('Failed to prepare agent files: ' + e.message);
+      resetToForm();
+      return;
+    }
+
     showStatus('Uploading...');
 
     const levels = optAnalyze.checked
@@ -329,7 +543,7 @@
       : '';
 
     const fd = new FormData();
-    fd.append('source', selectedFile);
+    fd.append('source', zipBlob, (selectedFolderName || 'agent') + '.zip');
     fd.append('analyze', optAnalyze.checked ? 'true' : 'false');
     fd.append('levels', levels);
     fd.append('strict', document.getElementById('opt-strict').checked ? 'true' : 'false');
@@ -464,13 +678,14 @@
   }
 
   function resetAll() {
-    selectedFile = null;
+    selectedEntries = null;
+    selectedFolderName = null;
     currentJobId = null;
     if (pollTimer) clearInterval(pollTimer);
     document.getElementById('file-name').textContent = '';
     document.getElementById('file-input').value = '';
     packBtn.disabled = true;
-    packBtn.textContent = 'Select a .zip to continue';
+    packBtn.textContent = 'Select an agent folder to begin';
     document.getElementById('form-section').style.display = 'block';
     document.getElementById('status-section').style.display = 'none';
     document.getElementById('result-section').style.display = 'none';
