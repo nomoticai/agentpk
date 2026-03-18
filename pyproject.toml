@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentpk"
-version = "0.2.2"
+version = "0.2.3"
 description = "Package AI agents into portable .agent files"
 readme = "README.md"
 license = "MIT"
