@@ -15,10 +15,7 @@ from typing import Any
 
 import yaml
 from rich.console import Console
-from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
-from rich.table import Table
-from rich.text import Text
 
 from agentpk import __version__
 from agentpk.constants import MANIFEST_FILENAME
@@ -27,9 +24,20 @@ from agentpk.constants import MANIFEST_FILENAME
 console = Console()
 err_console = Console(stderr=True)
 
-_CHECK = Text("\u2713", style="bold green")
-_CROSS = Text("\u2717", style="red dim")
-_WARN = Text("\u26a0", style="yellow")
+# Use ASCII-safe characters that work on all Windows terminals
+_PASS = "[bold green]OK[/bold green]"
+_FAIL = "[red]X[/red]"
+_WARN = "[yellow]![/yellow]"
+_SEP = "-" * 60
+
+
+def _mark(status: str) -> str:
+    """Return a Rich-markup status string."""
+    if status == "pass":
+        return _PASS
+    elif status == "fail":
+        return _FAIL
+    return _WARN
 
 
 # ---------------------------------------------------------------------------
@@ -151,27 +159,35 @@ def is_interactive() -> bool:
     return sys.stdin.isatty() and sys.stdout.isatty()
 
 
-def prompt_analysis_level(env: dict, max_level: int | None = None) -> int | None:
-    """Ask the user which analysis level to run.
+def _display_scanning(project: dict) -> None:
+    """Display the project scanning section."""
+    console.print()
+    console.print(f"  [bold]agentpk[/bold]  |  {project['name']}")
+    console.print()
+    console.print(f"  [bold]-- Scanning project {_SEP}[/bold]")
+    console.print(
+        f"  {_mark('pass')}  [cyan]{project['name']}[/cyan] v{project['version']}"
+    )
+    parts = []
+    if project["language"]:
+        parts.append(project["language"].capitalize())
+    if project["execution_type"]:
+        parts.append(project["execution_type"])
+    if project["tool_count"]:
+        parts.append(f"{project['tool_count']} tools")
+    if parts:
+        console.print(f"     {' | '.join(parts)}")
+    if project["tool_names"]:
+        console.print(f"     {'  '.join(project['tool_names'][:6])}")
 
-    Returns the chosen level (1-4) or None if the user declines.
-    """
+
+def _display_environment(env: dict) -> None:
+    """Display the environment detection section."""
     llm = env.get("llm", {})
     docker = env.get("docker", {})
 
-    # Determine max available level
-    max_avail = 2
-    if llm.get("available"):
-        max_avail = 3
-    if docker.get("available"):
-        max_avail = 4
-    if max_level is not None:
-        max_avail = min(max_avail, max_level)
-
-    # Display environment table
     console.print()
-    console.print("  [bold]\u2500\u2500 Environment[/bold]")
-    console.print()
+    console.print(f"  [bold]-- Environment {_SEP}[/bold]")
 
     _levels = [
         (1, "Structural validation", "always available", True),
@@ -191,37 +207,57 @@ def prompt_analysis_level(env: dict, max_level: int | None = None) -> int | None
     ]
 
     for level, name, status, available in _levels:
-        mark = _CHECK if available else _CROSS
-        style = "" if available else "[dim]"
-        end_style = "[/dim]" if not available else ""
-        console.print(f"  {mark}  Level {level}  {style}{name:<28}{status}{end_style}")
+        mark = _mark("pass") if available else _mark("fail")
+        if available:
+            console.print(f"  {mark}  Level {level}  {name:<28}{status}")
+        else:
+            console.print(f"  {mark}  [dim]Level {level}  {name:<28}{status}[/dim]")
+
+
+def prompt_analysis_level(env: dict, max_level: int | None = None) -> int | None:
+    """Ask the user which analysis level to run.
+
+    Returns the chosen level (1-4) or None if the user declines.
+    """
+    llm = env.get("llm", {})
+    docker = env.get("docker", {})
+
+    # Determine max available level
+    max_avail = 2
+    if llm.get("available"):
+        max_avail = 3
+    if docker.get("available"):
+        max_avail = 4
+    if max_level is not None:
+        max_avail = min(max_avail, max_level)
 
     console.print()
-    console.print("  [bold]Run code analysis?[/bold]  [dim][recommended][/dim]")
+    console.print(f"  [bold]-- Code analysis {_SEP}[/bold]")
+    console.print("  Run code analysis?  [dim][recommended][/dim]")
     console.print()
 
-    # Build choices
-    choices = []
-    if max_avail >= 3:
-        choices.append(f"  1) Yes \u2014 Level {max_avail} (highest available)")
-    if max_avail >= 2:
-        choices.append("  2) Yes \u2014 Level 2 only (no API key used)")
-    choices.append("  3) Yes \u2014 Level 1 only (structural only)")
-    choices.append("  4) No \u2014 skip analysis")
+    # Build menu with sequential numbering
+    _level_names = {1: "structural", 2: "static AST", 3: "LLM semantic", 4: "sandbox"}
+    options: list[tuple[str, int | None]] = []
 
-    for c in choices:
-        console.print(c)
+    # Highest available
+    options.append((f"Yes -- Level {max_avail} (highest available)", max_avail))
+    if max_avail > 2:
+        options.append(("Yes -- Level 2 only (no API key used)", 2))
+    if max_avail > 1:
+        options.append(("Yes -- Level 1 only (structural only)", 1))
+    options.append(("No -- skip analysis", None))
+
+    valid_choices = []
+    for i, (label, _level) in enumerate(options, 1):
+        console.print(f"  {i}) {label}")
+        valid_choices.append(str(i))
 
     console.print()
-    choice = Prompt.ask("  Choose", choices=["1", "2", "3", "4"], default="1")
+    choice = Prompt.ask("  Choose", choices=valid_choices, default="1")
 
-    _level_map: dict[str, int | None] = {
-        "1": max_avail if max_avail >= 3 else 2,
-        "2": 2,
-        "3": 1,
-        "4": None,
-    }
-    return _level_map.get(choice)
+    idx = int(choice) - 1
+    return options[idx][1] if 0 <= idx < len(options) else None
 
 
 def prompt_memory_bundle(env: dict) -> tuple[bool, list[str]]:
@@ -232,13 +268,12 @@ def prompt_memory_bundle(env: dict) -> tuple[bool, list[str]]:
     _ALL_COMPONENTS = ["audit", "fingerprint", "trust", "org_context", "knowledge_state"]
 
     console.print()
-    console.print("  [bold]\u2500\u2500 Memory snapshot[/bold]")
-    console.print()
+    console.print(f"  [bold]-- Memory snapshot {_SEP}[/bold]")
     console.print("  Bundle an AIR memory snapshot with this package?")
     console.print()
-    console.print("  1) Yes \u2014 all components")
-    console.print("  2) Yes \u2014 choose components")
-    console.print("  3) No \u2014 skip")
+    console.print("  1) Yes -- all components")
+    console.print("  2) Yes -- choose components")
+    console.print("  3) No -- skip")
     console.print()
 
     choice = Prompt.ask("  Choose", choices=["1", "2", "3"], default="3")
@@ -272,16 +307,16 @@ def prompt_confirm_pack(
     memory_components: list[str] | None = None,
 ) -> bool:
     """Show a summary and ask for confirmation."""
+    _level_names = {1: "structural", 2: "static AST", 3: "LLM semantic", 4: "sandbox"}
+
     console.print()
-    console.print("  [bold]\u2500\u2500 Confirm[/bold]")
-    console.print()
+    console.print(f"  [bold]-- Confirm {_SEP}[/bold]")
     console.print(
         f"  Ready to pack [cyan]{project['name']}[/cyan] "
         f"v{project['version']}"
     )
 
     if analysis_level:
-        _level_names = {1: "structural", 2: "static AST", 3: "LLM semantic", 4: "sandbox"}
         console.print(f"  Analysis:  Level {analysis_level} ({_level_names.get(analysis_level, '')})")
     else:
         console.print("  Analysis:  none")
@@ -302,12 +337,7 @@ def prompt_confirm_pack(
 
 def _print_stage(label: str, status: str, detail: str = "") -> None:
     """Print a completed stage line."""
-    if status == "pass":
-        mark = _CHECK
-    elif status == "fail":
-        mark = _CROSS
-    else:
-        mark = _WARN
+    mark = _mark(status)
     suffix = f"  {detail}" if detail else ""
     console.print(f"  {mark}  {label}{suffix}")
 
@@ -329,33 +359,17 @@ def run_interactive_pack(
 
     # 1. Scan project
     project = scan_project(source)
-    console.print()
-    console.print(f"  [bold]agentpk[/bold]  \u00b7  {project['name']}")
-    console.print()
-    console.print("  [bold]\u2500\u2500 Scanning project[/bold]")
-    console.print()
 
     if not project["valid"]:
-        console.print(f"  {_CROSS}  {project['error']}")
+        console.print()
+        console.print(f"  {_mark('fail')}  {project['error']}")
         return 1
 
-    console.print(
-        f"  {_CHECK}  [cyan]{project['name']}[/cyan] v{project['version']}"
-    )
-    parts = []
-    if project["language"]:
-        parts.append(project["language"].capitalize())
-    if project["execution_type"]:
-        parts.append(project["execution_type"])
-    if project["tool_count"]:
-        parts.append(f"{project['tool_count']} tools")
-    if parts:
-        console.print(f"     {' \u00b7 '.join(parts)}")
-    if project["tool_names"]:
-        console.print(f"     {' '.join(project['tool_names'][:6])}")
+    _display_scanning(project)
 
     # 2. Detect environment
     env = detect_environment()
+    _display_environment(env)
 
     # 3. Prompt for analysis level
     analysis_level = prompt_analysis_level(env)
@@ -370,14 +384,13 @@ def run_interactive_pack(
 
     # 6. Execute the pipeline
     console.print()
-    console.print("  [bold]\u2500\u2500 Packaging[/bold]")
-    console.print()
+    console.print(f"  [bold]-- Packaging {_SEP}[/bold]")
 
     # Run analysis if requested
     analysis_block = None
     analysis_result = None
     if analysis_level:
-        console.print(f"  \u2981  Running analysis (level {analysis_level})...")
+        console.print(f"  >  Running analysis (level {analysis_level})...")
         try:
             from agentpk.analyzer import analyze as run_analysis, build_analysis_block
 
@@ -396,7 +409,7 @@ def run_interactive_pack(
     # Build AIR bundle if requested
     air_bundle = None
     if include_memory:
-        console.print("  \u2981  Building AIR bundle...")
+        console.print("  >  Building AIR bundle...")
         import datetime as _dt
 
         requested = set(memory_components)
@@ -411,12 +424,12 @@ def run_interactive_pack(
                 "export_timestamp": _dt.datetime.now(_dt.timezone.utc).isoformat(),
                 "issuing_platform": "agentpk",
                 "issuing_platform_version": __version__,
-                "_status": "stub \u2014 install agentpk[memory] for full intelligence export",
+                "_status": "stub -- install agentpk[memory] for full intelligence export",
             }
         _print_stage("AIR bundle", "pass", f"{len(memory_components)} components")
 
     # Pack
-    console.print("  \u2981  Packaging...")
+    console.print("  >  Packaging...")
 
     output_path = output
     if output_path is None and out_dir is not None:
@@ -454,10 +467,9 @@ def run_interactive_pack(
         f"[cyan]{result.output_path.name}[/cyan]" if result.output_path else "",
     )
 
-    # 7. Summary panel
+    # 7. Summary
     console.print()
-    console.print("  [bold]\u2500\u2500 Summary[/bold]")
-    console.print()
+    console.print(f"  [bold]-- Summary {_SEP}[/bold]")
 
     if analysis_result:
         _print_stage(
@@ -466,10 +478,14 @@ def run_interactive_pack(
             f"{analysis_result.trust_score}/100  {analysis_result.trust_label}",
         )
         disc_count = len(analysis_result.all_discrepancies)
-        _print_stage("Discrepancies", "pass" if disc_count == 0 else "warn", str(disc_count) if disc_count else "none")
+        _print_stage(
+            "Discrepancies",
+            "pass" if disc_count == 0 else "warn",
+            str(disc_count) if disc_count else "none",
+        )
 
     if include_memory:
-        _print_stage("AIR bundle", "pass", " \u00b7 ".join(memory_components))
+        _print_stage("AIR bundle", "pass", " | ".join(memory_components))
 
     from agentpk.cli import _humanize_bytes
 

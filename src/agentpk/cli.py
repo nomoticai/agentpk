@@ -225,27 +225,32 @@ def pack(
       agentpk pack my-agent/ --analyze --memory
       agentpk pack my-agent/ --memory --memory-components fingerprint,trust
     """
-    from agentpk.interactive import is_interactive
-
     source = Path(source).resolve()
 
     # ── Interactive mode ────────────────────────────────────────────
-    _interactive = (
-        not no_interactive
-        and is_interactive()
-        and not dry_run
-        and not analyze
-        and not memory
+    # Enter interactive mode when:
+    # - Running in a real terminal (TTY)
+    # - AND --no-interactive was not passed
+    # - AND not a dry run
+    # - AND analysis level was not explicitly fully specified
+    #   (--analyze with explicit --level)
+    # - AND --memory was not explicitly passed
+    _explicit_flags = (
+        dry_run
+        or memory
+        or (analyze and analyze_level is not None)
     )
 
-    if _interactive:
-        from agentpk.interactive import run_interactive_pack
-        sys.exit(run_interactive_pack(
-            source=source,
-            strict=strict,
-            out_dir=out_dir,
-            output=output,
-        ))
+    if not no_interactive and not _explicit_flags:
+        from agentpk.interactive import is_interactive
+        if is_interactive():
+            from agentpk.interactive import run_interactive_pack
+            sys.exit(run_interactive_pack(
+                source=source,
+                strict=strict,
+                out_dir=out_dir,
+                output=output,
+            ))
 
     from agentpk.packer import pack as do_pack
 

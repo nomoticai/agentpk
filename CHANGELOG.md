@@ -7,6 +7,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.3.1] — 2026-04-12
+
+### Fixed
+- **Interactive CLI crash on Windows**: Replaced all non-ASCII characters
+  (em dashes, bullets, middle dots, box-drawing characters) with ASCII
+  equivalents. The interactive pack flow previously crashed silently on
+  Windows terminals using cp1252 encoding.
+- **Section headers not rendering**: Seven `console.print()` calls in
+  interactive mode used plain strings instead of f-strings, printing the
+  literal text `{_SEP}` instead of the separator line.
+- **Rich Text object mutability**: Status markers (`OK`, `X`, `!`) were
+  Rich `Text` objects that lost their style after first render. Replaced
+  with Rich markup strings.
+
+---
+
 ## [0.3.0] — 2026-04-12
 
 ### Added
