@@ -6,6 +6,40 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+
+## [0.3.0] — 2026-04-12
+
+### Added
+- **`agentpk` CLI alias**: `pip install agentpk` now installs two equivalent
+  commands — `agent` (existing, unchanged) and `agentpk` (new canonical form).
+  Both invoke the same entry point. All new documentation uses `agentpk`.
+  `agent` remains supported indefinitely for backward compatibility.
+- **`--memory` flag on `agentpk pack`**: Bundles an AIR (Agent Intelligence
+  Record) snapshot alongside the `.agent` package. The snapshot is embedded
+  in `_package.air` in the archive manifest.
+- **`--memory-components` flag on `agentpk pack`**: Comma-separated list of
+  AIR components to include (`audit`, `fingerprint`, `trust`, `org_context`,
+  `knowledge_state`). Default: `all`. Unknown names are rejected with a
+  descriptive error.
+- **AIR specification** (`AIR.md`): Full v1.0 spec for the Agent Intelligence
+  Record standard — portable agent memory in platform-agnostic JSON schemas.
+  Published under CC BY 4.0.
+- **AIR stub embedding**: When `agentpk[memory]` is not installed, `--memory`
+  embeds a spec-compliant stub recording requested components, export
+  timestamp, and issuing platform. Full component hydration requires
+  `agentpk[memory]` (forthcoming in v0.3.x).
+
+### Changed
+- `--version` now displays the actual invoked program name (`agent` or
+  `agentpk`) instead of hardcoding `agent`.
+- `packer.pack()` accepts a new optional `air_bundle` keyword argument
+  stored under `_package.air`. No behavior change when `None`.
+
+### Fixed
+- Version string in `__init__.py` corrected (was `"0.2.3gi"`).
+
+---
+
 ## [0.2.3] — 2026-03-18
 
 ### Changed

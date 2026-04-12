@@ -41,12 +41,15 @@ Creates a directory with a `manifest.yaml`, entry point source file,
 Pack a directory into a `.agent` file.
 
 ```bash
-agent pack <source>
-agent pack <source> -o output.agent
-agent pack <source> --out-dir ./dist/
-agent pack <source> --dry-run
-agent pack <source> --analyze
-agent pack <source> --analyze --level 3 --strict
+agentpk pack <source>
+agentpk pack <source> -o output.agent
+agentpk pack <source> --out-dir ./dist/
+agentpk pack <source> --dry-run
+agentpk pack <source> --analyze
+agentpk pack <source> --analyze --level 3 --strict
+agentpk pack <source> --memory
+agentpk pack <source> --analyze --memory
+agentpk pack <source> --memory --memory-components fingerprint,trust
 ```
 
 Validates the source directory, generates checksums, injects `_package`
@@ -63,6 +66,8 @@ metadata, creates the `.agent` archive, and post-verifies the result.
 | `--analyze` | Run code analysis before packing and embed a trust score. |
 | `--level N` | Analysis depth 1-4. Default: highest available (auto-detects API keys and Docker). |
 | `--on-discrepancy` | Behaviour when analysis finds undeclared capabilities: `warn` (default), `fail`, or `auto`. |
+| `--memory` | Bundle an AIR (Agent Intelligence Record) snapshot alongside the package. |
+| `--memory-components` | Comma-separated AIR components to include: `audit`, `fingerprint`, `trust`, `org_context`, `knowledge_state` (default: `all`). |
 
 ### Analysis flags
 
@@ -78,6 +83,27 @@ Level auto-detection:
 
 See [agent_analyzer.md](agent_analyzer.md) for the full analysis
 architecture.
+
+### Memory flags
+
+When `--memory` is passed, agentpk bundles an AIR (Agent Intelligence
+Record) snapshot in the `_package.air` block inside the archive. AIR is
+an open standard for portable agent memory — behavioral history, trust
+trajectory, organizational context, and distilled insights.
+
+Full intelligence export requires `pip install agentpk[memory]`. Without
+it, a spec-compliant stub is embedded instead.
+
+Use `--memory-components` to select specific components:
+
+```bash
+agentpk pack my-agent/ --memory --memory-components fingerprint,trust
+```
+
+Valid component names: `audit`, `fingerprint`, `trust`, `org_context`,
+`knowledge_state`.
+
+See [AIR.md](../AIR.md) for the full specification.
 
 ---
 

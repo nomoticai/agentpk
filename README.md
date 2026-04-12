@@ -9,9 +9,15 @@ pip install agentpk
 ## Quickstart
 
 ```bash
-agent init my-agent
+pip install agentpk
+```
+
+Both `agentpk` and `agent` are installed. `agentpk` is the canonical form.
+
+```bash
+agentpk init my-agent
 # edit my-agent/manifest.yaml
-agent pack my-agent/
+agentpk pack my-agent/
 ```
 
 That's it. You now have a portable `my-agent-0.1.0.agent` file you can
@@ -19,11 +25,11 @@ share, deploy, or register.
 
 ```bash
 # Run it
-agent run my-agent-0.1.0.agent
+agentpk run my-agent-0.1.0.agent
 
 # Sign it
-agent keygen --out my-key.pem
-agent sign my-agent-0.1.0.agent --key my-key.pem
+agentpk keygen --out my-key.pem
+agentpk sign my-agent-0.1.0.agent --key my-key.pem
 ```
 
 ## What is the .agent format?
@@ -223,6 +229,8 @@ agent pack my-agent/ --analyze --level 3 --strict
 | `--level N` | Analysis depth 1-4 (default: auto) |
 | `--strict` | Fail if requested level cannot be reached |
 | `--on-discrepancy warn\|fail\|auto` | Discrepancy handling (default: warn) |
+| `--memory` | Bundle an AIR memory snapshot with the package |
+| `--memory-components` | Comma-separated component list (default: `all`) |
 
 ### Analysis levels
 
@@ -245,6 +253,30 @@ The maximum score is 100 when all four levels pass with no discrepancies.
 | 60-74 | Moderate |
 | 40-59 | Low |
 | 0-39 | Unverified |
+
+## Portable agent memory (AIR)
+
+Pack an agent with its accumulated intelligence:
+
+```bash
+agentpk pack my-agent/ --memory
+agentpk pack my-agent/ --analyze --memory
+agentpk pack my-agent/ --memory --memory-components fingerprint,trust,org_context
+```
+
+The `--memory` flag bundles an AIR (Agent Intelligence Record) snapshot
+alongside the package. AIR is an open standard for portable agent memory —
+behavioral history, trust trajectory, organizational context, and distilled
+insights in platform-agnostic JSON schemas.
+
+The snapshot lives in `_package.air` in the packed manifest and in
+`intelligence/` inside the archive. A receiving platform can rehydrate
+the agent's behavioral state without rebuilding it from scratch.
+
+Full intelligence export requires `pip install agentpk[memory]`.
+Without it, a spec-compliant stub is embedded instead.
+
+See [AIR.md](AIR.md) for the full specification.
 
 ## Signing and verification
 
