@@ -1,0 +1,22 @@
+spec_version: "1.0"
+name: memory-malformed-air-json
+version: "1.0.0"
+description: "Demonstrates malformed air.json with missing required fields."
+author: "agentpk examples"
+
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: src/agent.py
+  entry_function: main
+  dependencies: requirements.txt
+
+capabilities:
+  tools:
+    - id: scan_transaction
+      description: "Read transaction data from the incoming event stream."
+      scope: read
+      required: true
+
+execution:
+  type: on-demand

@@ -1,0 +1,3 @@
+AIR bundle verification failed: fingerprint component hash does not match
+declared hash in air.json. Expected sha256:aaaaaaaaaa..., got sha256:<actual>.
+The package may have been tampered with after export.

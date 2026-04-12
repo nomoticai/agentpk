@@ -1,0 +1,49 @@
+{
+  "air_version": "1.0",
+  "snapshot_timestamp": "2026-04-12T00:00:00Z",
+  "distillation_method": "nomotic-v1",
+  "summary_count": 4,
+  "key_insights": [
+    {
+      "id": "ki-001",
+      "domain": "escalation_patterns",
+      "content": "Transactions flagged on Friday afternoons have a 3x higher false-positive rate than weekday morning flags. Recommend elevated confidence threshold for Friday 14:00-18:00 window.",
+      "confidence": 0.91,
+      "source_record_count": 312,
+      "created": "2026-01-15T00:00:00Z"
+    },
+    {
+      "id": "ki-002",
+      "domain": "merchant_patterns",
+      "content": "Merchants in category code 5411 (grocery stores) generate the highest volume of sub-$50 transactions. These are consistently allowed with no drift from baseline.",
+      "confidence": 0.96,
+      "source_record_count": 1840,
+      "created": "2025-11-01T00:00:00Z"
+    },
+    {
+      "id": "ki-003",
+      "domain": "drift_history",
+      "content": "The March 2025 drift event was caused by a change in upstream event schema that temporarily caused all transactions to appear as write operations. Resolved by schema version pinning.",
+      "confidence": 0.99,
+      "source_record_count": 1,
+      "created": "2025-04-02T00:00:00Z"
+    },
+    {
+      "id": "ki-004",
+      "domain": "threshold_calibration",
+      "content": "The $10,000 threshold generates approximately 6% false positives on first flag. Members who dispute flags within 24 hours are correct 82% of the time.",
+      "confidence": 0.88,
+      "source_record_count": 284,
+      "created": "2026-02-28T00:00:00Z"
+    }
+  ],
+  "embeddings": {
+    "provider": "none",
+    "model": "none",
+    "dimension": 0,
+    "version": "1",
+    "entry_count": 0,
+    "storage": "inline"
+  },
+  "cid_root": null
+}

@@ -1,0 +1,13 @@
+spec_version: "1.0"
+name: test
+version: "1.0.0"
+description: "bad hours"
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: main.py
+execution:
+  type: on-demand
+  permitted_windows:
+    - days: [monday]
+      hours: "9am-5pm"

@@ -1,0 +1,10 @@
+{
+  "air_version": "1.0",
+  "agent_id": "memory-missing-component",
+  "total_observations": 100,
+  "confidence": 0.80,
+  "action_distribution": {
+    "read": 0.90,
+    "write": 0.10
+  }
+}

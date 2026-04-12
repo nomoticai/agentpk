@@ -15,6 +15,7 @@ from rich.table import Table
 from rich.text import Text
 
 from agentpk import __version__
+from agentpk.constants import MANIFEST_FILENAME
 
 console = Console()
 err_console = Console(stderr=True)
@@ -121,7 +122,14 @@ def cli() -> None:
     default="python",
     help="Runtime language for the agent project.",
 )
-def init(name: str, directory: Path, runtime: str) -> None:
+@click.option(
+    "--no-interactive",
+    is_flag=True,
+    default=False,
+    hidden=True,
+    help="Disable interactive prompts.",
+)
+def init(name: str, directory: Path, runtime: str, no_interactive: bool) -> None:
     """Scaffold a new agent project."""
     from agentpk.scaffold import scaffold
 
@@ -134,15 +142,24 @@ def init(name: str, directory: Path, runtime: str) -> None:
         directory = Path(directory).resolve()
     files = scaffold(name, directory, runtime=runtime)
 
-    console.print(
-        Panel(
-            f"[bold green]Created project [cyan]{name}[/cyan] "
-            f"with {len(files)} files[/bold green]",
-            title="agent init",
-        )
-    )
+    console.print()
+    console.print("  [bold]\u2500\u2500 New agent project[/bold]")
+    console.print()
+    console.print(f"  [bold green]\u2713[/bold green]  [cyan]{name}/[/cyan]")
     for f in files:
-        console.print(f"  [dim]-[/dim] {f}")
+        label = ""
+        fname = Path(f).name
+        if fname == MANIFEST_FILENAME:
+            label = " [dim]\u2190 edit this to describe your agent[/dim]"
+        elif fname.endswith((".py", ".js", ".ts", ".go", ".java")):
+            label = " [dim]\u2190 entry point[/dim]"
+        console.print(f"     {f}{label}")
+    console.print()
+    console.print("  [dim]Next steps:[/dim]")
+    console.print(f"    cd {name}")
+    console.print("    agentpk validate .")
+    console.print("    agentpk pack . --analyze")
+    console.print()
 
 
 # ---------------------------------------------------------------------------
@@ -174,6 +191,13 @@ def init(name: str, directory: Path, runtime: str) -> None:
         "audit,fingerprint,trust,org_context,knowledge_state  (default: all)"
     ),
 )
+@click.option(
+    "--no-interactive",
+    is_flag=True,
+    default=False,
+    hidden=True,
+    help="Disable interactive prompts (for CI and scripting).",
+)
 def pack(
     source: Path,
     output: Path | None,
@@ -186,6 +210,7 @@ def pack(
     on_discrepancy: str,
     memory: bool,
     memory_components: str,
+    no_interactive: bool,
 ) -> None:
     """Pack a directory into a .agent file.
 
@@ -200,9 +225,29 @@ def pack(
       agentpk pack my-agent/ --analyze --memory
       agentpk pack my-agent/ --memory --memory-components fingerprint,trust
     """
-    from agentpk.packer import pack as do_pack
+    from agentpk.interactive import is_interactive
 
     source = Path(source).resolve()
+
+    # ── Interactive mode ────────────────────────────────────────────
+    _interactive = (
+        not no_interactive
+        and is_interactive()
+        and not dry_run
+        and not analyze
+        and not memory
+    )
+
+    if _interactive:
+        from agentpk.interactive import run_interactive_pack
+        sys.exit(run_interactive_pack(
+            source=source,
+            strict=strict,
+            out_dir=out_dir,
+            output=output,
+        ))
+
+    from agentpk.packer import pack as do_pack
 
     # ── Run analysis if requested ────────────────────────────────────
     analysis_block = None
@@ -565,6 +610,67 @@ def inspect(agent_file: Path) -> None:
         ts_table.add_row("", "repack with --analyze to generate score")
 
     console.print(ts_table)
+
+    # ── Agent Intelligence Record (AIR) ──────────────────────────────
+    air = info.get("air")
+    if air and isinstance(air, dict):
+        air_table = Table(
+            title="Agent Intelligence Record (AIR)",
+            show_header=False,
+            border_style="cyan",
+        )
+        air_table.add_column("Field", style="bold")
+        air_table.add_column("Value")
+
+        air_table.add_row("version", str(air.get("air_version", "")))
+
+        platform = air.get("issuing_platform", "")
+        platform_ver = air.get("issuing_platform_version", "")
+        if platform:
+            air_table.add_row(
+                "issuing platform",
+                f"{platform} {platform_ver}" if platform_ver else platform,
+            )
+
+        exported = air.get("export_timestamp", "")
+        if exported:
+            air_table.add_row("exported", exported)
+
+        redaction = air.get("redaction_profile", "")
+        if redaction:
+            air_table.add_row("redaction", redaction)
+
+        components = air.get("components", [])
+        if components:
+            air_table.add_row("components", " \u00b7 ".join(components))
+
+        # License summary
+        lic = air.get("intelligence_license", {})
+        if isinstance(lic, dict) and lic:
+            lic_default = lic.get("default", "")
+            prohibited = lic.get("prohibited_uses", [])
+            lic_note = lic_default
+            if "re-export" in prohibited:
+                lic_note += " (re-export prohibited)"
+            air_table.add_row("license", lic_note)
+
+        # Hash verification status
+        comp_hashes = air.get("component_hashes", {})
+        if isinstance(comp_hashes, dict) and comp_hashes:
+            all_placeholder = all(
+                "placeholder" in str(v) for v in comp_hashes.values()
+            )
+            if all_placeholder:
+                air_table.add_row("hashes", "[dim]placeholder (example data)[/dim]")
+            else:
+                air_table.add_row("hashes", "present")
+
+        # Stub status
+        status = air.get("_status", "")
+        if status:
+            air_table.add_row("status", f"[yellow]{status}[/yellow]")
+
+        console.print(air_table)
 
     # ── File listing ──────────────────────────────────────────────────
     files = info.get("files", [])

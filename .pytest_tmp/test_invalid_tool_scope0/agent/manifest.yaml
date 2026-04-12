@@ -1,0 +1,16 @@
+spec_version: "1.0"
+name: test
+version: "1.0.0"
+description: "bad scope"
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: main.py
+capabilities:
+  tools:
+    - id: bad-tool
+      description: "oops"
+      scope: destroy
+      required: true
+execution:
+  type: on-demand

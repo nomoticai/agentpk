@@ -257,6 +257,7 @@ def inspect(package_path: Path) -> dict[str, Any]:
         "errors": [],
         "warnings": [],
         "analysis": None,
+        "air": None,
     }
 
     result["size_bytes"] = package_path.stat().st_size
@@ -279,7 +280,7 @@ def inspect(package_path: Path) -> dict[str, Any]:
                 result["errors"] = [str(exc)]
                 return result
 
-            # Extract analysis block from raw _package data
+            # Extract analysis and AIR blocks from raw _package data
             try:
                 raw = yaml.safe_load(
                     manifest_path.read_text(encoding="utf-8")
@@ -287,8 +288,20 @@ def inspect(package_path: Path) -> dict[str, Any]:
                 pkg = raw.get("_package", {})
                 if isinstance(pkg, dict):
                     result["analysis"] = pkg.get("analysis")
+                    result["air"] = pkg.get("air")
             except Exception:
                 pass
+
+            # Check for intelligence/air.json in the archive
+            air_json_path = tmp_dir / "intelligence" / "air.json"
+            if air_json_path.exists() and result["air"] is None:
+                import json
+                try:
+                    result["air"] = json.loads(
+                        air_json_path.read_text(encoding="utf-8")
+                    )
+                except Exception:
+                    pass
 
         vr = validate_package(package_path)
         result["is_valid"] = vr.is_valid

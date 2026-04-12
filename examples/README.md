@@ -48,6 +48,33 @@ for the full table.
 agent pack examples/invalid/04-invalid-name
 ```
 
+## Memory examples (AIR)
+
+These examples demonstrate the AIR (Agent Intelligence Record) standard
+for portable agent memory.
+
+### Valid
+
+| Example | Description |
+|---------|-------------|
+| `valid/fraud-detector-with-memory` | Full AIR bundle: fingerprint, trust trajectory, org context, knowledge state |
+| `valid/healthcare-agent-strict-redaction` | Partial AIR bundle with strict redaction profile — no audit, no PHI |
+
+### Invalid
+
+| Example | Error demonstrated |
+|---------|-------------------|
+| `invalid/memory-hash-mismatch` | Component file modified after bundle was signed |
+| `invalid/memory-missing-component` | air.json declares a component absent from the archive |
+| `invalid/memory-malformed-air-json` | air.json missing required fields |
+
+Pack any valid example with:
+
+```bash
+agentpk pack examples/valid/fraud-detector-with-memory --memory
+agentpk inspect fraud-detector-with-memory-1.0.0.agent
+```
+
 ## Quick Test
 
 Verify all valid examples pack and all invalid examples fail:
@@ -55,11 +82,11 @@ Verify all valid examples pack and all invalid examples fail:
 ```bash
 # Valid -- expect success
 for dir in examples/valid/*/; do
-  agent pack "$dir" && echo "OK: $dir" || echo "FAIL: $dir"
+  agentpk pack "$dir" && echo "OK: $dir" || echo "FAIL: $dir"
 done
 
 # Invalid -- expect failure
 for dir in examples/invalid/*/; do
-  agent pack "$dir" 2>&1 | head -1
+  agentpk pack "$dir" 2>&1 | head -1
 done
 ```

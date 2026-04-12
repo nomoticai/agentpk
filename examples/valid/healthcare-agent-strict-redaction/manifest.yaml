@@ -1,0 +1,47 @@
+spec_version: "1.0"
+name: healthcare-agent-strict-redaction
+display_name: "Prior Authorization Agent (strict redaction)"
+version: "1.0.0"
+description: "Checks prior authorization eligibility. Packaged with strict-redacted AIR bundle — no PHI in memory export."
+author: "agentpk examples"
+license: "MIT"
+tags:
+  - healthcare
+  - prior-auth
+  - hipaa
+  - air-example
+
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: src/agent.py
+  entry_function: main
+  dependencies: requirements.txt
+
+capabilities:
+  tools:
+    - id: check_eligibility
+      description: "Query the eligibility system for prior authorization status."
+      scope: read
+      required: true
+      targets:
+        - "eligibility.*"
+    - id: submit_authorization
+      description: "Submit a prior authorization request."
+      scope: write
+      required: true
+      targets:
+        - "authorizations.*"
+
+permissions:
+  data_classes:
+    - name: phi
+      access: read
+
+execution:
+  type: on-demand
+  timeout_minutes: 10
+
+resources:
+  memory_mb: 256
+  network: outbound-only

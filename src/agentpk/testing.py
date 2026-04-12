@@ -317,6 +317,173 @@ execution:
     _write(d, "package.json", '{"name": "test-typescript", "version": "1.0.0"}\n')
 
 
+def _setup_valid_memory_full(d: Path) -> None:
+    """Valid agent with full AIR memory bundle (4 components)."""
+    import json
+
+    manifest = """\
+spec_version: "1.0"
+name: "test-memory-full"
+version: "1.0.0"
+description: Agent with full AIR bundle.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+execution:
+  type: on-demand
+"""
+    _write(d, "manifest.yaml", manifest)
+    _write(d, "agent.py", _AGENT_PY)
+    _write(d, "requirements.txt", _REQUIREMENTS_TXT)
+    intel = d / "intelligence"
+    intel.mkdir()
+    (intel / "air.json").write_text(json.dumps({
+        "air_version": "1.0",
+        "components": ["fingerprint", "trust"],
+        "component_hashes": {
+            "fingerprint": "sha256:placeholder-recomputed-at-pack-time",
+            "trust": "sha256:placeholder-recomputed-at-pack-time",
+        },
+    }), encoding="utf-8")
+    (intel / "fingerprint.json").write_text(json.dumps({
+        "air_version": "1.0",
+        "total_observations": 100,
+    }), encoding="utf-8")
+    (intel / "trust.json").write_text(json.dumps({
+        "air_version": "1.0",
+        "current_score": 0.85,
+    }), encoding="utf-8")
+
+
+def _setup_valid_memory_strict(d: Path) -> None:
+    """Valid agent with strict-redacted AIR bundle (subset of components)."""
+    import json
+
+    manifest = """\
+spec_version: "1.0"
+name: "test-memory-strict"
+version: "1.0.0"
+description: Agent with strict-redacted AIR bundle.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+execution:
+  type: on-demand
+"""
+    _write(d, "manifest.yaml", manifest)
+    _write(d, "agent.py", _AGENT_PY)
+    _write(d, "requirements.txt", _REQUIREMENTS_TXT)
+    intel = d / "intelligence"
+    intel.mkdir()
+    (intel / "air.json").write_text(json.dumps({
+        "air_version": "1.0",
+        "components": ["fingerprint"],
+        "redaction_profile": "strict",
+    }), encoding="utf-8")
+    (intel / "fingerprint.json").write_text(json.dumps({
+        "air_version": "1.0",
+        "total_observations": 50,
+    }), encoding="utf-8")
+
+
+def _setup_memory_missing_component(d: Path) -> None:
+    """Invalid: air.json declares trust but file is missing."""
+    import json
+
+    manifest = """\
+spec_version: "1.0"
+name: "test-memory-missing"
+version: "1.0.0"
+description: AIR bundle with missing component.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+execution:
+  type: on-demand
+"""
+    _write(d, "manifest.yaml", manifest)
+    _write(d, "agent.py", _AGENT_PY)
+    _write(d, "requirements.txt", _REQUIREMENTS_TXT)
+    intel = d / "intelligence"
+    intel.mkdir()
+    (intel / "air.json").write_text(json.dumps({
+        "air_version": "1.0",
+        "components": ["fingerprint", "trust"],
+    }), encoding="utf-8")
+    (intel / "fingerprint.json").write_text(json.dumps({
+        "air_version": "1.0",
+    }), encoding="utf-8")
+    # Deliberately no trust.json
+
+
+def _setup_memory_malformed_air(d: Path) -> None:
+    """Invalid: air.json missing required fields."""
+    import json
+
+    manifest = """\
+spec_version: "1.0"
+name: "test-memory-malformed"
+version: "1.0.0"
+description: AIR bundle with malformed air.json.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+execution:
+  type: on-demand
+"""
+    _write(d, "manifest.yaml", manifest)
+    _write(d, "agent.py", _AGENT_PY)
+    _write(d, "requirements.txt", _REQUIREMENTS_TXT)
+    intel = d / "intelligence"
+    intel.mkdir()
+    (intel / "air.json").write_text(json.dumps({
+        "issuing_platform": "nomotic",
+    }), encoding="utf-8")
+
+
+def _setup_memory_hash_mismatch(d: Path) -> None:
+    """Invalid: component hash in air.json does not match file content."""
+    import json
+
+    manifest = """\
+spec_version: "1.0"
+name: "test-memory-hash"
+version: "1.0.0"
+description: AIR bundle with hash mismatch.
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: agent.py
+  dependencies: requirements.txt
+execution:
+  type: on-demand
+"""
+    _write(d, "manifest.yaml", manifest)
+    _write(d, "agent.py", _AGENT_PY)
+    _write(d, "requirements.txt", _REQUIREMENTS_TXT)
+    intel = d / "intelligence"
+    intel.mkdir()
+    (intel / "air.json").write_text(json.dumps({
+        "air_version": "1.0",
+        "components": ["fingerprint"],
+        "component_hashes": {
+            "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        },
+    }), encoding="utf-8")
+    (intel / "fingerprint.json").write_text(json.dumps({
+        "air_version": "1.0",
+        "total_observations": 100,
+    }), encoding="utf-8")
+
+
 def _setup_env_overlap(d: Path) -> None:
     manifest = """\
 spec_version: "1.0"
@@ -462,6 +629,41 @@ TEST_CASES: list[TestCase] = [
         expect_valid=False,
         setup=_setup_env_overlap,
         error_fragment="overlap",
+    ),
+    # ── valid AIR memory ──
+    TestCase(
+        name="valid-memory-full",
+        description="Agent with full AIR memory bundle",
+        expect_valid=True,
+        setup=_setup_valid_memory_full,
+    ),
+    TestCase(
+        name="valid-memory-strict",
+        description="Agent with strict-redacted AIR bundle",
+        expect_valid=True,
+        setup=_setup_valid_memory_strict,
+    ),
+    # ── invalid AIR memory ──
+    TestCase(
+        name="memory-missing-component",
+        description="AIR bundle declares absent component",
+        expect_valid=False,
+        setup=_setup_memory_missing_component,
+        error_fragment="AIR bundle incomplete",
+    ),
+    TestCase(
+        name="memory-malformed-air",
+        description="AIR air.json missing required fields",
+        expect_valid=False,
+        setup=_setup_memory_malformed_air,
+        error_fragment="air_version",
+    ),
+    TestCase(
+        name="memory-hash-mismatch",
+        description="AIR component hash does not match file",
+        expect_valid=False,
+        setup=_setup_memory_hash_mismatch,
+        error_fragment="hash",
     ),
 ]
 
