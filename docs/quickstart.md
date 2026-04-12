@@ -132,6 +132,19 @@ The trust score tells consumers how well the manifest matches what the
 code actually does. See [agent_analyzer.md](agent_analyzer.md) for the
 full architecture.
 
+## Bundle agent memory
+
+Pack an agent with its accumulated intelligence using the AIR standard:
+
+```bash
+agentpk pack my-agent/ --memory
+agentpk pack my-agent/ --memory --memory-components fingerprint,trust
+```
+
+Full intelligence export requires `pip install agentpk[memory]`. Without
+it, a spec-compliant stub is embedded. See [AIR.md](../AIR.md) for the
+full specification.
+
 ## Sign and verify
 
 Generate a key pair, sign the package, and verify it:

@@ -71,6 +71,7 @@ def _inject_package_block(
     total_files: int,
     package_size_bytes: int,
     analysis_block: dict[str, Any] | None = None,
+    air_bundle: dict[str, Any] | None = None,
 ) -> None:
     """Add / update the ``_package`` block in a manifest file on disk."""
     raw: dict[str, Any] = yaml.safe_load(
@@ -88,6 +89,8 @@ def _inject_package_block(
     }
     if analysis_block is not None:
         pkg["analysis"] = analysis_block
+    if air_bundle is not None:
+        pkg["air"] = air_bundle
     raw["_package"] = pkg
     manifest_path.write_text(
         yaml.dump(raw, default_flow_style=False, sort_keys=False),
@@ -105,6 +108,7 @@ def pack(
     output_path: Path | None = None,
     dry_run: bool = False,
     analysis_block: dict[str, Any] | None = None,
+    air_bundle: dict[str, Any] | None = None,
 ) -> PackResult:
     """Pack a directory into a ``.agent`` file.
 
@@ -173,6 +177,7 @@ def pack(
             total_files=file_count,
             package_size_bytes=0,
             analysis_block=analysis_block,
+            air_bundle=air_bundle,
         )
 
         checksums = generate_checksums(source_dir)
@@ -188,6 +193,7 @@ def pack(
             total_files=file_count,
             package_size_bytes=first_size,
             analysis_block=analysis_block,
+            air_bundle=air_bundle,
         )
 
         checksums = generate_checksums(source_dir)

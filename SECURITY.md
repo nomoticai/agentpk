@@ -88,6 +88,32 @@ packages is the recommended mitigation.
 
 ---
 
+## AIR memory bundles
+
+When a package is built with `--memory`, an AIR (Agent Intelligence Record)
+bundle may be embedded in `_package.air` and/or the `intelligence/` directory.
+
+**AIR data is not covered by the package integrity hashes.** The manifest
+hash and checksums verify the agent's code and manifest. AIR bundles have
+their own integrity mechanism (`component_hashes` in `air.json`) which
+must be verified separately by the consuming platform.
+
+**AIR data may contain sensitive information.** Audit trails, organizational
+vocabulary, and behavioral fingerprints may reveal business logic or user
+patterns. The AIR specification defines three redaction profiles (`minimal`,
+`standard`, `strict`) — apply the appropriate level before distributing
+packages with memory bundles.
+
+**AIR data is mutable across package versions.** Unlike code and manifests
+which are sealed at pack time, an agent's intelligence evolves over its
+operational lifetime. Consuming platforms should verify AIR bundle integrity
+independently and treat imported memory as a starting point, not a guarantee.
+
+See [AIR.md](AIR.md) for the full specification and conformant consumer
+requirements.
+
+---
+
 ## Responsible disclosure
 
 If you discover a security vulnerability in agentpk — the CLI,

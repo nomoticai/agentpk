@@ -103,6 +103,19 @@ Proposals for spec changes should be discussed via a GitHub issue at
 [nomoticai/agentpk](https://github.com/nomoticai/agentpk) before
 implementation.
 
+### AIR — Agent Intelligence Record
+
+The `.agent` format supports an optional `intelligence/` directory for
+portable agent memory via the AIR (Agent Intelligence Record) standard.
+The AIR bundle captures behavioral history, trust trajectory, organizational
+context, and distilled insights in platform-agnostic JSON schemas.
+
+When packed with `--memory`, the `_package.air` block in `manifest.yaml`
+records the bundle manifest inline. Full component files live in
+`intelligence/` inside the archive.
+
+See [AIR.md](AIR.md) for the full specification.
+
 ## License
 
 This specification is licensed under

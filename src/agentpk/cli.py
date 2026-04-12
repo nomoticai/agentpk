@@ -98,7 +98,7 @@ def _print_analysis_results(analysis_result: object) -> None:
 # ---------------------------------------------------------------------------
 
 @click.group()
-@click.version_option(version=__version__, prog_name="agent")
+@click.version_option(version=__version__)
 def cli() -> None:
     """agentpk - Package AI agents into portable .agent files."""
 
@@ -159,6 +159,21 @@ def init(name: str, directory: Path, runtime: str) -> None:
 @click.option("--analyze", is_flag=True, default=False, help="Run code analysis and embed trust score in package.")
 @click.option("--level", "analyze_level", default=None, type=click.IntRange(1, 4), help="Analysis level (1-4). Default: highest available.")
 @click.option("--on-discrepancy", type=click.Choice(["warn", "fail", "auto"]), default="warn", help="Behavior when analysis finds undeclared capabilities.")
+@click.option(
+    "--memory",
+    is_flag=True,
+    default=False,
+    help="Bundle an AIR (Agent Intelligence Record) snapshot alongside the package.",
+)
+@click.option(
+    "--memory-components",
+    default="all",
+    show_default=True,
+    help=(
+        "Comma-separated AIR components to include: "
+        "audit,fingerprint,trust,org_context,knowledge_state  (default: all)"
+    ),
+)
 def pack(
     source: Path,
     output: Path | None,
@@ -169,14 +184,21 @@ def pack(
     analyze: bool,
     analyze_level: int | None,
     on_discrepancy: str,
+    memory: bool,
+    memory_components: str,
 ) -> None:
     """Pack a directory into a .agent file.
 
     \b
     Use --analyze to run code analysis and embed a trust score:
-      agent pack my-agent/ --analyze
-      agent pack my-agent/ --analyze --level 3
-      agent pack my-agent/ --analyze --strict --level 3
+      agentpk pack my-agent/ --analyze
+      agentpk pack my-agent/ --analyze --level 3
+      agentpk pack my-agent/ --analyze --strict --level 3
+
+    \b
+    Use --memory to bundle an AIR (Agent Intelligence Record) snapshot:
+      agentpk pack my-agent/ --analyze --memory
+      agentpk pack my-agent/ --memory --memory-components fingerprint,trust
     """
     from agentpk.packer import pack as do_pack
 
@@ -228,13 +250,56 @@ def pack(
             f"({analysis_result.trust_label})\n"
         )
 
+    # ── AIR memory bundle ──────────────────────────────────────────
+    _VALID_AIR_COMPONENTS = {"audit", "fingerprint", "trust", "org_context", "knowledge_state"}
+    air_bundle = None
+
+    if memory:
+        # Parse requested components
+        if memory_components.strip().lower() == "all":
+            requested = _VALID_AIR_COMPONENTS
+        else:
+            requested = {c.strip() for c in memory_components.split(",") if c.strip()}
+            unknown = requested - _VALID_AIR_COMPONENTS
+            if unknown:
+                err_console.print(
+                    f"[bold red]Error:[/bold red] unknown AIR component(s): {', '.join(sorted(unknown))}\n"
+                    f"  Valid components: {', '.join(sorted(_VALID_AIR_COMPONENTS))}"
+                )
+                sys.exit(1)
+
+        console.print(f"  Bundling AIR memory snapshot ({', '.join(sorted(requested))})...")
+
+        try:
+            from agentpk.air import build_air_bundle
+            air_bundle = build_air_bundle(source, components=requested)
+        except ImportError:
+            import datetime as _dt
+            air_bundle = {
+                "air_version": "1.0",
+                "spec": "https://agentpk.io/specs/air/v1.0",
+                "components": sorted(requested),
+                "export_timestamp": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+                "issuing_platform": "agentpk",
+                "issuing_platform_version": __version__,
+                "_status": "stub — install agentpk[memory] for full intelligence export",
+            }
+            console.print("  [yellow]AIR stub embedded (install agentpk[memory] for full intelligence export)[/yellow]")
+        except Exception as exc:
+            if strict:
+                err_console.print(f"[bold red]AIR bundle failed:[/bold red] {exc}")
+                sys.exit(1)
+            else:
+                console.print(f"  [yellow]AIR bundle skipped: {exc}[/yellow]")
+                air_bundle = None
+
     # ── Resolve output path ──────────────────────────────────────────
     output_path = output
     if output_path is None and out_dir is not None:
         output_path = None  # pack() will auto-name; we move after
     # NOTE: if both are None, pack() picks <name>-<version>.agent in parent dir
 
-    result = do_pack(source, output_path=output_path, dry_run=dry_run, analysis_block=analysis_block)
+    result = do_pack(source, output_path=output_path, dry_run=dry_run, analysis_block=analysis_block, air_bundle=air_bundle)
 
     # Move to out_dir if needed (and not dry_run)
     if (
