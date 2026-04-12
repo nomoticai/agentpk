@@ -1,0 +1,39 @@
+{
+  "air_version": "1.0",
+  "org_id": "acme-financial",
+  "values": [
+    "accuracy over speed",
+    "always escalate on ambiguity in financial context",
+    "err on the side of caution for amounts above $5,000"
+  ],
+  "vocabulary": {
+    "preferred": {
+      "client": "member",
+      "fee": "service charge",
+      "flag": "review"
+    },
+    "prohibited": [
+      "guaranteed",
+      "risk-free",
+      "certain"
+    ]
+  },
+  "domain_anchors": [
+    "PCI-DSS compliance",
+    "real-time fraud detection",
+    "AML (anti-money laundering)",
+    "transaction monitoring"
+  ],
+  "escalation_patterns": [
+    {
+      "trigger": "amount > 10000",
+      "action": "alert_compliance_team",
+      "priority": "high"
+    },
+    {
+      "trigger": "merchant_country not in allowed_list",
+      "action": "flag_and_escalate",
+      "priority": "medium"
+    }
+  ]
+}

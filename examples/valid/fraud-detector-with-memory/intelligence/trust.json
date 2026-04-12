@@ -1,0 +1,34 @@
+{
+  "air_version": "1.0",
+  "current_score": 0.87,
+  "trajectory": [
+    {
+      "ts": "2025-02-01T00:00:00Z",
+      "score": 0.72,
+      "event": "initial"
+    },
+    {
+      "ts": "2025-03-15T08:22:11Z",
+      "score": 0.61,
+      "event": "drift_detected",
+      "note": "write-to-read ratio exceeded contract invariant"
+    },
+    {
+      "ts": "2025-04-02T14:05:33Z",
+      "score": 0.78,
+      "event": "drift_resolved",
+      "note": "behavior returned to baseline after configuration update"
+    },
+    {
+      "ts": "2025-08-10T11:44:00Z",
+      "score": 0.84,
+      "event": "elevated_trust"
+    },
+    {
+      "ts": "2026-01-20T09:15:00Z",
+      "score": 0.87,
+      "event": "elevated_trust"
+    }
+  ],
+  "trajectory_label": "recovered_stable"
+}

@@ -278,6 +278,113 @@ def _stage4_consistency(data: dict, result: ValidationResult) -> None:
         )
 
 
+def _validate_air_bundle(
+    source_dir: Path, result: ValidationResult
+) -> None:
+    """Validate an AIR (Agent Intelligence Record) bundle if present.
+
+    Checks:
+    - air.json has required fields (air_version, components)
+    - All declared components have corresponding files
+    - Component hashes match if declared
+    """
+    import hashlib
+    import json
+
+    air_dir = source_dir / "intelligence"
+    air_manifest = air_dir / "air.json"
+    if not air_manifest.exists():
+        return  # No AIR bundle — nothing to validate
+
+    try:
+        air_data = json.loads(air_manifest.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        result.add_error(
+            f"AIR bundle manifest unreadable: {exc}",
+            field="intelligence/air.json",
+        )
+        return
+
+    if not isinstance(air_data, dict):
+        result.add_error(
+            "AIR bundle manifest invalid: expected a JSON object",
+            field="intelligence/air.json",
+        )
+        return
+
+    # Required fields
+    if "air_version" not in air_data:
+        result.add_error(
+            "AIR bundle manifest invalid: required field 'air_version' missing from air.json",
+            field="intelligence/air.json",
+        )
+
+    if "components" not in air_data:
+        result.add_error(
+            "AIR bundle manifest invalid: required field 'components' missing from air.json",
+            field="intelligence/air.json",
+        )
+        return  # Can't check component files without the list
+
+    components = air_data["components"]
+    if not isinstance(components, list):
+        result.add_error(
+            "AIR bundle manifest invalid: 'components' must be an array",
+            field="intelligence/air.json",
+        )
+        return
+
+    # Component file mapping
+    _COMPONENT_FILES = {
+        "audit": "audit.jsonl",
+        "fingerprint": "fingerprint.json",
+        "trust": "trust.json",
+        "org_context": "org_context.json",
+        "knowledge_state": "knowledge_state.json",
+    }
+
+    # Check declared components exist as files
+    for comp in components:
+        filename = _COMPONENT_FILES.get(comp, f"{comp}.json")
+        comp_path = air_dir / filename
+        if not comp_path.exists():
+            result.add_error(
+                f"AIR bundle incomplete: air.json declares component '{comp}' "
+                f"but intelligence/{filename} is not present in the archive",
+                field=f"intelligence/{filename}",
+            )
+
+    # Verify component hashes if declared
+    comp_hashes = air_data.get("component_hashes")
+    if isinstance(comp_hashes, dict):
+        for comp, declared_hash in comp_hashes.items():
+            if not isinstance(declared_hash, str):
+                continue
+            if not declared_hash.startswith("sha256:"):
+                continue
+            # Skip placeholder hashes
+            if "placeholder" in declared_hash:
+                continue
+
+            filename = _COMPONENT_FILES.get(comp, f"{comp}.json")
+            comp_path = air_dir / filename
+            if not comp_path.exists():
+                continue  # Already reported as missing above
+
+            actual_sha = hashlib.sha256(
+                comp_path.read_bytes()
+            ).hexdigest()
+            expected_sha = declared_hash[len("sha256:"):]
+            if actual_sha != expected_sha:
+                result.add_error(
+                    f"AIR bundle verification failed: {comp} component hash "
+                    f"does not match declared hash in air.json. "
+                    f"Expected sha256:{expected_sha[:10]}..., "
+                    f"got sha256:{actual_sha[:10]}...",
+                    field=f"intelligence/{filename}",
+                )
+
+
 def _stage5_checksums(
     source_dir: Path, result: ValidationResult
 ) -> None:
@@ -357,6 +464,7 @@ def validate_directory(source_dir: Path) -> ValidationResult:
     # Stage 4 — Consistency
     err_before = len(result.errors)
     _stage4_consistency(data, result)
+    _validate_air_bundle(source_dir, result)
     s4_failed = len(result.errors) > err_before
     result.stages.append(StageResult("Consistency", "fail" if s4_failed else "pass"))
 

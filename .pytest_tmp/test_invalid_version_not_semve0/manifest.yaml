@@ -1,0 +1,10 @@
+spec_version: "1.0"
+name: bad-ver
+version: "v1"
+description: "Bad version."
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: main.py
+execution:
+  type: on-demand

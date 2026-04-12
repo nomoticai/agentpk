@@ -1,0 +1,26 @@
+{
+  "air_version": "1.0",
+  "spec": "https://agentpk.io/specs/air/v1.0",
+  "agent_id": "fraud-detector-with-memory",
+  "certificate_id": null,
+  "issuing_platform": "nomotic",
+  "issuing_platform_version": "0.9.0",
+  "export_timestamp": "2026-04-12T00:00:00Z",
+  "components": ["fingerprint", "trust", "org_context", "knowledge_state"],
+  "component_hashes": {
+    "fingerprint": "sha256:placeholder-recomputed-at-pack-time",
+    "trust": "sha256:placeholder-recomputed-at-pack-time",
+    "org_context": "sha256:placeholder-recomputed-at-pack-time",
+    "knowledge_state": "sha256:placeholder-recomputed-at-pack-time"
+  },
+  "export_sig": null,
+  "redaction_profile": "standard",
+  "intelligence_license": {
+    "default": "proprietary",
+    "components": {
+      "fingerprint": "cc-by-nc-4.0"
+    },
+    "permitted_uses": ["rehydration", "governance"],
+    "prohibited_uses": ["fine-tuning", "benchmarking", "re-export"]
+  }
+}

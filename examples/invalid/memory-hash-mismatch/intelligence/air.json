@@ -1,0 +1,11 @@
+{
+  "air_version": "1.0",
+  "spec": "https://agentpk.io/specs/air/v1.0",
+  "agent_id": "memory-hash-mismatch",
+  "issuing_platform": "nomotic",
+  "export_timestamp": "2026-04-12T00:00:00Z",
+  "components": ["fingerprint"],
+  "component_hashes": {
+    "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}

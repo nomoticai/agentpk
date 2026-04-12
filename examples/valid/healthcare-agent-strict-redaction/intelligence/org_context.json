@@ -1,0 +1,35 @@
+{
+  "air_version": "1.0",
+  "org_id": "regional-health-network",
+  "values": [
+    "patient privacy above all other considerations",
+    "escalate when clinical necessity is ambiguous",
+    "prefer authorization over denial when evidence is borderline"
+  ],
+  "vocabulary": {
+    "preferred": {
+      "patient": "member",
+      "denial": "adverse determination",
+      "approval": "authorization"
+    },
+    "prohibited": [
+      "guaranteed coverage",
+      "definitely covered",
+      "will be approved"
+    ]
+  },
+  "domain_anchors": [
+    "HIPAA compliance",
+    "prior authorization",
+    "medical necessity",
+    "CMS guidelines",
+    "ICD-10"
+  ],
+  "escalation_patterns": [
+    {
+      "trigger": "procedure_code in experimental_list",
+      "action": "escalate_to_medical_director",
+      "priority": "high"
+    }
+  ]
+}

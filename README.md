@@ -88,10 +88,10 @@ the runtime; analysis depth depends on the language:
 Scaffold for any runtime:
 
 ```bash
-agent init my-node-agent --runtime nodejs
-agent init my-go-agent --runtime go
-agent init my-java-agent --runtime java
-agent init my-ts-agent --runtime typescript
+agentpk init my-node-agent --runtime nodejs
+agentpk init my-go-agent --runtime go
+agentpk init my-java-agent --runtime java
+agentpk init my-ts-agent --runtime typescript
 ```
 
 ## Naming convention
@@ -109,20 +109,20 @@ with a letter.
 
 | Command | Description |
 |---------|-------------|
-| `agent init <name>` | Scaffold a new agent project |
-| `agent pack <dir>` | Pack a directory into a `.agent` file |
-| `agent validate <target>` | Validate a `.agent` file or project directory |
-| `agent inspect <file>` | Display metadata from a `.agent` file |
-| `agent unpack <file>` | Extract a `.agent` file to a directory |
-| `agent diff <old> <new>` | Show differences between two `.agent` files |
-| `agent test` | Run built-in self-tests to verify installation |
-| `agent generate [dir]` | Generate a manifest.yaml from code analysis |
-| `agent list [dir]` | List all `.agent` files in a directory |
-| `agent run <file>` | Execute a packed `.agent` file as a subprocess |
-| `agent sign <file>` | Sign a `.agent` file with a private key |
-| `agent verify <file>` | Verify the signature on a `.agent` file |
-| `agent keygen` | Generate an Ed25519 key pair for signing |
-| `agent serve` | Start the REST API and packaging UI |
+| `agentpk init <name>` | Scaffold a new agent project |
+| `agentpk pack <dir>` | Pack a directory into a `.agent` file |
+| `agentpk validate <target>` | Validate a `.agent` file or project directory |
+| `agentpk inspect <file>` | Display metadata and AIR bundle from a `.agent` file |
+| `agentpk unpack <file>` | Extract a `.agent` file to a directory |
+| `agentpk diff <old> <new>` | Show differences between two `.agent` files |
+| `agentpk test` | Run built-in self-tests (22 cases) |
+| `agentpk generate [dir]` | Generate a manifest.yaml from code analysis |
+| `agentpk list [dir]` | List all `.agent` files in a directory |
+| `agentpk run <file>` | Execute a packed `.agent` file as a subprocess |
+| `agentpk sign <file>` | Sign a `.agent` file with a private key |
+| `agentpk verify <file>` | Verify the signature on a `.agent` file |
+| `agentpk keygen` | Generate an Ed25519 key pair for signing |
+| `agentpk serve` | Start the REST API and packaging UI |
 
 ## REST API and packaging UI
 
@@ -130,7 +130,7 @@ Package and certify agents from a browser or remote system without the CLI:
 
 ```bash
 pip install agentpk[api]
-agent serve
+agentpk serve
 # API on http://localhost:8080
 # Packaging UI on http://localhost:8080
 ```
@@ -159,28 +159,28 @@ curl http://localhost:8080/v1/packages/{job_id}/download -o my-agent.agent
 Options:
 
 ```bash
-agent serve --port 9000
-agent serve --host 127.0.0.1
-agent serve --reload          # dev mode
+agentpk serve --port 9000
+agentpk serve --host 127.0.0.1
+agentpk serve --reload          # dev mode
 ```
 
 ## Listing agents
 
 ```bash
-agent list
-agent list ./agents/
-agent list ./agents/ --recursive
-agent list ./agents/ --json
+agentpk list
+agentpk list ./agents/
+agentpk list ./agents/ --recursive
+agentpk list ./agents/ --json
 ```
 
 ## Running agents
 
 ```bash
-agent run my-agent-1.0.0.agent
-agent run my-agent-1.0.0.agent --dry-run
-agent run my-agent-1.0.0.agent --keep
-agent run my-agent-1.0.0.agent --env API_KEY=abc123
-agent run my-agent-1.0.0.agent -- --flag value
+agentpk run my-agent-1.0.0.agent
+agentpk run my-agent-1.0.0.agent --dry-run
+agentpk run my-agent-1.0.0.agent --keep
+agentpk run my-agent-1.0.0.agent --env API_KEY=abc123
+agentpk run my-agent-1.0.0.agent -- --flag value
 ```
 
 The runner extracts the package to a temp directory, validates it, and
@@ -208,8 +208,8 @@ architecture.
 ### Generating a manifest from code
 
 ```bash
-agent generate ./my-agent
-agent generate ./my-agent --level 3
+agentpk generate ./my-agent
+agentpk generate ./my-agent --level 3
 ```
 
 The generated manifest includes `# REVIEW` markers on fields that could
@@ -218,9 +218,9 @@ not be determined from code analysis alone.
 ### Packing with analysis
 
 ```bash
-agent pack my-agent/ --analyze
-agent pack my-agent/ --analyze --level 3
-agent pack my-agent/ --analyze --level 3 --strict
+agentpk pack my-agent/ --analyze
+agentpk pack my-agent/ --analyze --level 3
+agentpk pack my-agent/ --analyze --level 3 --strict
 ```
 
 | Flag | Effect |
@@ -278,12 +278,28 @@ Without it, a spec-compliant stub is embedded instead.
 
 See [AIR.md](AIR.md) for the full specification.
 
+## Interactive pack mode
+
+Run `agentpk pack` in a terminal with no flags and the CLI walks you
+through environment detection, analysis level selection, and memory
+bundling interactively:
+
+```bash
+agentpk pack ./my-agent
+```
+
+The interactive flow detects available API keys and container runtimes,
+presents guided options, shows live progress, and prints a summary with
+next steps. It activates automatically in a terminal and is disabled
+when piped, when explicit flags are passed (`--analyze`, `--memory`),
+or with `--no-interactive`.
+
 ## Signing and verification
 
 ### Generate a keypair
 
 ```bash
-agent keygen --out my-key.pem
+agentpk keygen --out my-key.pem
 ```
 
 Creates two files:
@@ -293,8 +309,8 @@ Creates two files:
 ### Sign an agent
 
 ```bash
-agent sign fraud-detection-1.0.0.agent --key my-key.pem
-agent sign fraud-detection-1.0.0.agent --key my-key.pem --signer "Acme AI"
+agentpk sign fraud-detection-1.0.0.agent --key my-key.pem
+agentpk sign fraud-detection-1.0.0.agent --key my-key.pem --signer "Acme AI"
 ```
 
 Produces `fraud-detection-1.0.0.agent.sig` — a JSON file containing the
@@ -304,7 +320,7 @@ metadata.
 ### Verify a signature
 
 ```bash
-agent verify fraud-detection-1.0.0.agent --key my-key.pub.pem
+agentpk verify fraud-detection-1.0.0.agent --key my-key.pub.pem
 ```
 
 ## Manifest structure
@@ -320,9 +336,9 @@ timestamps, file counts, and package size. Never edit by hand.
 ## Validation
 
 ```bash
-agent validate ./my-agent/
-agent validate my-agent-1.0.0.agent
-agent validate my-agent-1.0.0.agent --verbose
+agentpk validate ./my-agent/
+agentpk validate my-agent-1.0.0.agent
+agentpk validate my-agent-1.0.0.agent --verbose
 ```
 
 The `--verbose` flag displays a per-stage breakdown. Directories skip
@@ -332,18 +348,25 @@ packed files.
 ## Verifying your installation
 
 ```bash
-agent test
-agent test --verbose
+agentpk test
+agentpk test --verbose
 ```
 
 ## Examples
 
-Five valid examples and eleven intentionally broken examples in `examples/`.
+Seven valid examples and fourteen intentionally broken examples in `examples/`.
 
 ```bash
-agent pack examples/valid/fraud-detection
-agent pack examples/invalid/04-invalid-name
+agentpk pack examples/valid/fraud-detection
+agentpk pack examples/valid/fraud-detector-with-memory --memory
+agentpk inspect fraud-detector-with-memory-1.0.0.agent
+agentpk pack examples/invalid/04-invalid-name
 ```
+
+The memory examples demonstrate AIR bundling (`fraud-detector-with-memory`,
+`healthcare-agent-strict-redaction`) and AIR validation failure modes
+(`memory-hash-mismatch`, `memory-missing-component`,
+`memory-malformed-air-json`). See `examples/README.md` for the full index.
 
 ## Specification
 

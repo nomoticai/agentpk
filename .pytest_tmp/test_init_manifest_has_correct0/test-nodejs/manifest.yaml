@@ -1,0 +1,14 @@
+spec_version: "1.0"
+name: test-nodejs
+version: "0.1.0"
+description: "TODO: Describe what this agent does."
+runtime:
+  language: nodejs
+  language_version: "20"
+  entry_point: agent.js
+  entry_function: run
+  dependencies: package.json
+capabilities:
+  tools: []
+execution:
+  type: on-demand

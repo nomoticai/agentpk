@@ -28,12 +28,45 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   embeds a spec-compliant stub recording requested components, export
   timestamp, and issuing platform. Full component hydration requires
   `agentpk[memory]` (forthcoming in v0.3.x).
+- **AIR bundle validation**: The 6-stage validation pipeline now validates
+  `intelligence/air.json` when present — checks required fields
+  (`air_version`, `components`), verifies declared component files exist,
+  and verifies component SHA-256 hashes when declared.
+- **Interactive pack mode**: `agentpk pack` in a terminal with no explicit
+  flags enters an interactive flow — environment detection, guided analysis
+  level selection, memory bundle prompt, confirmation, live progress, and
+  summary panel with next steps. Disabled automatically when piped, when
+  `--analyze`/`--memory` are passed, or with `--no-interactive`.
+- **AIR section in `agentpk inspect`**: When a package contains AIR data
+  (either `_package.air` or `intelligence/air.json`), inspect displays
+  version, issuing platform, export timestamp, redaction profile,
+  components, license summary, and hash status.
+- **Memory example agents**: Two new valid examples demonstrating AIR
+  bundling and three new invalid examples demonstrating AIR validation
+  failure modes:
+  - `examples/valid/fraud-detector-with-memory` — full AIR bundle with
+    fingerprint, trust trajectory, org context, and knowledge state from
+    14 months of simulated operation
+  - `examples/valid/healthcare-agent-strict-redaction` — strict redaction
+    profile with fingerprint and org context only (no audit, no PHI)
+  - `examples/invalid/memory-hash-mismatch` — component file modified
+    after bundle was exported
+  - `examples/invalid/memory-missing-component` — air.json declares a
+    component absent from the archive
+  - `examples/invalid/memory-malformed-air-json` — air.json missing
+    required fields
+- **5 new self-test cases**: 2 valid AIR agents and 3 invalid AIR agents
+  added to `agentpk test`, bringing the built-in suite to 22 test cases.
 
 ### Changed
 - `--version` now displays the actual invoked program name (`agent` or
   `agentpk`) instead of hardcoding `agent`.
 - `packer.pack()` accepts a new optional `air_bundle` keyword argument
   stored under `_package.air`. No behavior change when `None`.
+- `packer.inspect()` now returns an `air` key in its result dict,
+  extracted from `_package.air` or `intelligence/air.json`.
+- `agentpk init` output updated with improved visual formatting —
+  shows file annotations and next-steps guidance.
 
 ### Fixed
 - Version string in `__init__.py` corrected (was `"0.2.3gi"`).

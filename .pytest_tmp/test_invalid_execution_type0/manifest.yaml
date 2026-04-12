@@ -1,0 +1,10 @@
+spec_version: "1.0"
+name: bad-exec
+version: "0.1.0"
+description: "Bad exec type."
+runtime:
+  language: python
+  language_version: "3.11"
+  entry_point: main.py
+execution:
+  type: once

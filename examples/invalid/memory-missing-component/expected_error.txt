@@ -1,0 +1,2 @@
+AIR bundle incomplete: air.json declares component 'trust' but
+intelligence/trust.json is not present in the archive.

@@ -1,0 +1,10 @@
+spec_version: "1.0"
+name: bad-lang
+version: "0.1.0"
+description: "Bad language."
+runtime:
+  language: cobol
+  language_version: "85"
+  entry_point: main.cob
+execution:
+  type: on-demand

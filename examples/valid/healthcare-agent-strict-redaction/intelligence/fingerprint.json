@@ -1,0 +1,25 @@
+{
+  "air_version": "1.0",
+  "agent_id": "healthcare-agent-strict-redaction",
+  "total_observations": 12840,
+  "confidence": 0.97,
+  "action_distribution": {
+    "read": 0.91,
+    "write": 0.09
+  },
+  "target_distribution": {
+    "eligibility.*": 0.91,
+    "authorizations.*": 0.09
+  },
+  "temporal_profile": {
+    "peak_hours": [8, 9, 10, 11, 14],
+    "burst_threshold": 8.1,
+    "avg_actions_per_hour": 11.2
+  },
+  "outcome_distribution": {
+    "ALLOW": 0.94,
+    "DENY": 0.02,
+    "ESCALATE": 0.04
+  },
+  "drift_baseline_jsd": 0.04
+}

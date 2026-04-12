@@ -1,0 +1,7 @@
+{
+  "agent": "fraud-detection-0.1.0.agent",
+  "manifest_hash": "sha256:2ddf5591c32c55f0056943dc91ffdc416c5413a6249a7772c6db1f9d88331424",
+  "algorithm": "ed25519",
+  "signature": "01b649611c440056808b9196dc0ff8b240983306bec8eba9a8c4dfa9a9e4611e007e905c93a6dc5d4ab06aa0e580611827576591cb206d42987b0fb8ebb0540a",
+  "signed_at": "2026-04-12T16:25:07.661804+00:00"
+}

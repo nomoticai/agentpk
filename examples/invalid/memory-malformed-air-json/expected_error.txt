@@ -1,0 +1,2 @@
+AIR bundle manifest invalid: required field 'air_version' missing from air.json.
+AIR bundle manifest invalid: required field 'components' missing from air.json.
