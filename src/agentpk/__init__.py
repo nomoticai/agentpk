@@ -1,6 +1,6 @@
 """agentpk - Package AI agents into portable .agent files."""
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 from agentpk.sdk import (
     pack,

@@ -1,0 +1,16 @@
+capabilities:
+  tools:
+  - description: Read
+    id: read_data
+    required: true
+    scope: read
+description: A test.
+execution:
+  type: on-demand
+name: test-agent
+runtime:
+  entry_point: agent.py
+  language: python
+  language_version: '3.11'
+spec_version: '1.0'
+version: 1.0.0
