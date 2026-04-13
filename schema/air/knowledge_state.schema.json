@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpk.io/specs/air/v1.1/knowledge_state.schema.json",
+  "title": "Knowledge State",
+  "description": "Distilled insights from operational history with provenance and confidence.",
+  "type": "object",
+  "required": ["air_version", "snapshot_timestamp", "distillation_method"],
+  "properties": {
+    "air_version": { "type": "string" },
+    "snapshot_timestamp": { "type": "string", "format": "date-time" },
+    "distillation_method": {
+      "type": "string",
+      "enum": ["nomotic-v1", "manual", "external"]
+    },
+    "summary_count": { "type": "integer", "minimum": 0 },
+    "key_insights": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "domain", "content", "confidence", "insight_source"],
+        "properties": {
+          "id": { "type": "string" },
+          "domain": { "type": "string" },
+          "content": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "insight_source": {
+            "type": "string",
+            "enum": ["governance_derived", "experience_derived", "human_annotated", "hybrid"],
+            "description": "Whether this insight came from governance patterns, operational experience, human annotation, or a combination."
+          },
+          "source_record_count": { "type": "integer" },
+          "created": { "type": "string", "format": "date-time" },
+          "last_validated": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "embeddings": {
+      "type": "object",
+      "properties": {
+        "provider": { "type": "string" },
+        "model": { "type": "string" },
+        "dimension": { "type": "integer" },
+        "version": { "type": "string" },
+        "entry_count": { "type": "integer" },
+        "storage": { "type": "string", "enum": ["inline", "cid"] }
+      }
+    },
+    "cid_root": { "type": ["string", "null"] }
+  }
+}

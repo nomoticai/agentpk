@@ -1,5 +1,5 @@
 {
-  "air_version": "1.0",
+  "air_version": "1.1",
   "agent_id": "healthcare-agent-strict-redaction",
   "total_observations": 12840,
   "confidence": 0.97,

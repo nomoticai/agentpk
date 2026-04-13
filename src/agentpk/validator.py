@@ -340,6 +340,9 @@ def _validate_air_bundle(
         "fingerprint": "fingerprint.json",
         "trust": "trust.json",
         "org_context": "org_context.json",
+        "compliance_state": "compliance_state.json",
+        "domain_model": "domain_model.json",
+        "interaction_patterns": "interaction_patterns.json",
         "knowledge_state": "knowledge_state.json",
     }
 

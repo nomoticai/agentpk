@@ -107,8 +107,11 @@ implementation.
 
 The `.agent` format supports an optional `intelligence/` directory for
 portable agent memory via the AIR (Agent Intelligence Record) standard.
-The AIR bundle captures behavioral history, trust trajectory, organizational
-context, and distilled insights in platform-agnostic JSON schemas.
+The AIR v1.1 bundle captures 8 components organized into three layers:
+Governance Record (audit, fingerprint, trust), Institutional Context
+(org_context, compliance_state), and Operational Intelligence
+(domain_model, interaction_patterns, knowledge_state) -- all in
+platform-agnostic JSON schemas.
 
 When packed with `--memory`, the `_package.air` block in `manifest.yaml`
 records the bundle manifest inline. Full component files live in

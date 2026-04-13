@@ -7,6 +7,40 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.3.3] — 2026-04-12
+
+### Added
+- **AIR v1.1 -- 8-component schema**: Expanded from 5 to 8 components
+  organized into three explicit layers: Governance Record (audit,
+  fingerprint, trust), Institutional Context (org_context,
+  compliance_state), and Operational Intelligence (domain_model,
+  interaction_patterns, knowledge_state).
+- **`compliance_state` component**: Regulatory posture snapshot --
+  active frameworks (HIPAA, PCI-DSS, SOC2, etc.), policy versions
+  in effect at export time, data classifications, and audit retention
+  policy.
+- **`domain_model` component**: The agent's learned understanding of
+  its domain -- entities, relationships, edge cases encountered, and
+  thresholds calibrated through experience rather than configuration.
+- **`interaction_patterns` component**: Learned patterns about the
+  humans and systems the agent works with -- request patterns,
+  ambiguity resolutions, communication preferences, and system
+  integration quirks.
+- **`insight_source` field on `knowledge_state` insights**: Explicit
+  tagging of whether each insight is `governance_derived`,
+  `experience_derived`, `human_annotated`, or `hybrid`. Allows
+  receiving platforms to calibrate trust appropriately.
+- **JSON Schema files** in `schema/air/` for all 8 components plus
+  the `air.json` bundle manifest.
+
+### Changed
+- `--memory-components` now accepts all 8 component names.
+- `AIR.md` updated to v1.1 with three-layer architecture documentation.
+- fraud-detector-with-memory example updated with all 8 components.
+- healthcare-agent-strict-redaction example updated with `compliance_state`.
+
+---
+
 ## [0.3.2] — 2026-04-12
 
 ### Fixed

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpk.io/specs/air/v1.0/trust.schema.json",
+  "title": "Trust Trajectory",
+  "description": "Time-series of trust score changes with labeled events.",
+  "type": "object",
+  "required": ["air_version", "current_score", "trajectory"],
+  "properties": {
+    "air_version": { "type": "string" },
+    "current_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "trajectory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ts", "score", "event"],
+        "properties": {
+          "ts": { "type": "string", "format": "date-time" },
+          "score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "event": {
+            "type": "string",
+            "enum": ["initial", "drift_detected", "drift_resolved", "elevated_trust", "trust_reduced", "air_import", "policy_change", "manual_adjustment"]
+          },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "trajectory_label": {
+      "type": "string",
+      "enum": ["rising", "declining", "stable", "volatile", "recovered_stable"]
+    }
+  }
+}

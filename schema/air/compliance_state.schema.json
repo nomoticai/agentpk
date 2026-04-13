@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpk.io/specs/air/v1.1/compliance_state.schema.json",
+  "title": "Compliance State",
+  "description": "Regulatory posture and active compliance frameworks in effect at export time.",
+  "type": "object",
+  "required": ["air_version", "snapshot_timestamp"],
+  "properties": {
+    "air_version": { "type": "string" },
+    "snapshot_timestamp": { "type": "string", "format": "date-time" },
+    "active_frameworks": {
+      "type": "array",
+      "description": "Regulatory frameworks the agent was operating under.",
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "examples": ["HIPAA", "PCI-DSS", "SOC2", "GDPR", "CCPA", "ISO-27001", "NIST-AI-RMF"]
+          },
+          "version": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["active", "pending", "suspended", "historical"]
+          },
+          "effective_from": { "type": "string", "format": "date-time" },
+          "policy_version": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "policy_snapshots": {
+      "type": "array",
+      "description": "Governance policy versions active at export time.",
+      "items": {
+        "type": "object",
+        "required": ["policy_id", "version", "active_from"],
+        "properties": {
+          "policy_id": { "type": "string" },
+          "version": { "type": "string" },
+          "active_from": { "type": "string", "format": "date-time" },
+          "hash": { "type": "string" }
+        }
+      }
+    },
+    "data_classifications": {
+      "type": "array",
+      "description": "Data classes the agent was authorized to access.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "classification": { "type": "string", "examples": ["PHI", "PII", "PCI", "confidential", "public"] },
+          "access_level": { "type": "string", "enum": ["read", "write", "admin"] },
+          "authorized_from": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "audit_retention_policy": {
+      "type": "object",
+      "properties": {
+        "retention_days": { "type": "integer" },
+        "legal_hold": { "type": "boolean" }
+      }
+    }
+  }
+}

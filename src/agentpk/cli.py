@@ -188,7 +188,8 @@ def init(name: str, directory: Path, runtime: str, no_interactive: bool) -> None
     show_default=True,
     help=(
         "Comma-separated AIR components to include: "
-        "audit,fingerprint,trust,org_context,knowledge_state  (default: all)"
+        "audit, fingerprint, trust, org_context, compliance_state, "
+        "domain_model, interaction_patterns, knowledge_state  (default: all)"
     ),
 )
 @click.option(
@@ -301,7 +302,11 @@ def pack(
         )
 
     # ── AIR memory bundle ──────────────────────────────────────────
-    _VALID_AIR_COMPONENTS = {"audit", "fingerprint", "trust", "org_context", "knowledge_state"}
+    _VALID_AIR_COMPONENTS = {
+        "audit", "fingerprint", "trust", "org_context",
+        "compliance_state", "domain_model", "interaction_patterns",
+        "knowledge_state",
+    }
     air_bundle = None
 
     if memory:
@@ -326,8 +331,8 @@ def pack(
         except ImportError:
             import datetime as _dt
             air_bundle = {
-                "air_version": "1.0",
-                "spec": "https://agentpk.io/specs/air/v1.0",
+                "air_version": "1.1",
+                "spec": "https://agentpk.io/specs/air/v1.1",
                 "components": sorted(requested),
                 "export_timestamp": _dt.datetime.now(_dt.timezone.utc).isoformat(),
                 "issuing_platform": "agentpk",

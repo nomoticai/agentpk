@@ -1,0 +1,81 @@
+{
+  "air_version": "1.1",
+  "snapshot_timestamp": "2026-04-12T00:00:00Z",
+  "total_interactions": 14382,
+  "request_patterns": [
+    {
+      "pattern_id": "rp-001",
+      "description": "Real-time transaction scoring -- inbound transaction event, returns allow/deny/escalate within SLA",
+      "frequency": 12140,
+      "typical_resolution": "Automated verdict based on composite risk score; 89% ALLOW, 6% DENY, 5% ESCALATE",
+      "avg_confidence": 0.94,
+      "escalation_rate": 0.05
+    },
+    {
+      "pattern_id": "rp-002",
+      "description": "Batch retroactive review -- compliance team submits batch of past transactions for re-evaluation against updated rules",
+      "frequency": 1842,
+      "typical_resolution": "Re-score each transaction against current policy; flag discrepancies for human review",
+      "avg_confidence": 0.91,
+      "escalation_rate": 0.12
+    },
+    {
+      "pattern_id": "rp-003",
+      "description": "Member dispute investigation -- triggered when a member challenges a denied or flagged transaction",
+      "frequency": 400,
+      "typical_resolution": "Pull full transaction context, compare against member history, produce investigation summary for analyst",
+      "avg_confidence": 0.86,
+      "escalation_rate": 0.34
+    }
+  ],
+  "ambiguity_resolutions": [
+    {
+      "scenario": "Transaction amount is exactly at the configured threshold boundary (e.g. $10,000.00)",
+      "learned_resolution": "Treat boundary-exact amounts as above-threshold; the cost of a false negative exceeds the cost of a false positive at boundary values",
+      "confidence": 0.90,
+      "sample_count": 284,
+      "override_rate": 0.03
+    },
+    {
+      "scenario": "Merchant is in a high-risk MCC category but the member has a long history of transactions with this specific merchant",
+      "learned_resolution": "Weight member-merchant history above MCC risk category when the member has 5+ prior transactions with the same merchant in 90 days",
+      "confidence": 0.88,
+      "sample_count": 1620,
+      "override_rate": 0.07
+    },
+    {
+      "scenario": "Conflicting signals: geo-location mismatch but device fingerprint matches known member device",
+      "learned_resolution": "Favor device fingerprint match; VPN and mobile roaming cause frequent geo-mismatches. Escalate only if both geo AND device are anomalous.",
+      "confidence": 0.92,
+      "sample_count": 743,
+      "override_rate": 0.04
+    }
+  ],
+  "communication_preferences": {
+    "verbosity": "minimal",
+    "escalation_preference": "conservative",
+    "confirmation_threshold": 0.85
+  },
+  "system_integrations": [
+    {
+      "system_id": "transaction-gateway-v3",
+      "system_type": "event_stream",
+      "interaction_count": 12140,
+      "success_rate": 0.998,
+      "learned_quirks": [
+        "Occasionally sends duplicate events with identical seq_id within 50ms; dedup by seq_id before scoring",
+        "Currency field uses ISO 4217 but sometimes sends lowercase; normalize to uppercase before lookup"
+      ]
+    },
+    {
+      "system_id": "member-profile-service",
+      "system_type": "rest_api",
+      "interaction_count": 4721,
+      "success_rate": 0.994,
+      "learned_quirks": [
+        "Latency spikes to 800ms+ during batch settlement windows (02:00-03:00 UTC); cache member profiles during this window",
+        "Returns 404 for recently migrated accounts until T+24h; fall back to legacy endpoint for 404 responses"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpk.io/specs/air/v1.0/air.schema.json",
+  "title": "AIR Bundle Manifest",
+  "description": "Master manifest for an Agent Intelligence Record bundle.",
+  "type": "object",
+  "required": ["air_version", "spec", "issuing_platform", "issuing_platform_version", "export_timestamp", "components"],
+  "properties": {
+    "air_version": {
+      "type": "string",
+      "description": "AIR specification version used at export time.",
+      "example": "1.1"
+    },
+    "spec": {
+      "type": "string",
+      "format": "uri",
+      "description": "Canonical URL of the AIR specification.",
+      "example": "https://agentpk.io/specs/air/v1.1"
+    },
+    "agent_id": { "type": "string" },
+    "certificate_id": { "type": ["string", "null"] },
+    "issuing_platform": { "type": "string" },
+    "issuing_platform_version": { "type": "string" },
+    "export_timestamp": { "type": "string", "format": "date-time" },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["audit", "fingerprint", "trust", "org_context", "compliance_state", "domain_model", "interaction_patterns", "knowledge_state"]
+      },
+      "description": "List of components present in this bundle."
+    },
+    "component_hashes": {
+      "type": "object",
+      "description": "SHA-256 hash of each component file. Keys are component names.",
+      "additionalProperties": { "type": "string", "pattern": "^sha256:" }
+    },
+    "export_sig": { "type": ["string", "null"], "description": "Ed25519 signature over canonical air.json with export_sig set to null." },
+    "redaction_profile": {
+      "type": "string",
+      "enum": ["minimal", "standard", "strict"],
+      "default": "standard"
+    },
+    "intelligence_license": {
+      "type": "object",
+      "properties": {
+        "default": { "type": "string" },
+        "components": { "type": "object", "additionalProperties": { "type": "string" } },
+        "permitted_uses": { "type": "array", "items": { "type": "string" } },
+        "prohibited_uses": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "layer_summary": {
+      "type": "object",
+      "description": "Which layers are present in this bundle.",
+      "properties": {
+        "governance_record": { "type": "boolean" },
+        "institutional_context": { "type": "boolean" },
+        "operational_intelligence": { "type": "boolean" }
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpk.io/specs/air/v1.0/fingerprint.schema.json",
+  "title": "Behavioral Fingerprint",
+  "description": "Statistical profile of an agent's action patterns built from governance history.",
+  "type": "object",
+  "required": ["air_version", "agent_id", "total_observations", "confidence"],
+  "properties": {
+    "air_version": { "type": "string" },
+    "agent_id": { "type": "string" },
+    "total_observations": { "type": "integer", "minimum": 0 },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "action_distribution": {
+      "type": "object",
+      "description": "Proportion of each action type. Values sum to 1.0.",
+      "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+    },
+    "target_distribution": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+    },
+    "temporal_profile": {
+      "type": "object",
+      "properties": {
+        "peak_hours": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 23 } },
+        "burst_threshold": { "type": "number" },
+        "avg_actions_per_hour": { "type": "number" }
+      }
+    },
+    "outcome_distribution": {
+      "type": "object",
+      "properties": {
+        "ALLOW": { "type": "number", "minimum": 0, "maximum": 1 },
+        "DENY": { "type": "number", "minimum": 0, "maximum": 1 },
+        "ESCALATE": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "drift_baseline_jsd": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}

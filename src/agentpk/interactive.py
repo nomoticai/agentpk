@@ -418,8 +418,8 @@ def run_interactive_pack(
             air_bundle = build_air_bundle(source, components=requested)
         except ImportError:
             air_bundle = {
-                "air_version": "1.0",
-                "spec": "https://agentpk.io/specs/air/v1.0",
+                "air_version": "1.1",
+                "spec": "https://agentpk.io/specs/air/v1.1",
                 "components": sorted(requested),
                 "export_timestamp": _dt.datetime.now(_dt.timezone.utc).isoformat(),
                 "issuing_platform": "agentpk",

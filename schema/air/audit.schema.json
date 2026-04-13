@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpk.io/specs/air/v1.0/audit.schema.json",
+  "title": "Audit Trail Manifest",
+  "description": "Manifest for the hash-chained audit.jsonl transaction history.",
+  "type": "object",
+  "required": ["air_version", "record_count", "chain_tail"],
+  "properties": {
+    "air_version": { "type": "string" },
+    "record_count": { "type": "integer", "minimum": 0 },
+    "audit_format": {
+      "type": "string",
+      "enum": ["jsonl", "jsonl.gz", "zstd", "parquet"],
+      "default": "jsonl"
+    },
+    "chain_head": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "chain_tail": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "MUST be present in every export regardless of audit_format or summary mode."
+    },
+    "export_sig": { "type": ["string", "null"] },
+    "redaction_profile": {
+      "type": "string",
+      "enum": ["minimal", "standard", "strict"]
+    },
+    "date_range": {
+      "type": "object",
+      "properties": {
+        "from": { "type": "string", "format": "date-time" },
+        "to": { "type": "string", "format": "date-time" }
+      }
+    },
+    "summary_only": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, audit.jsonl contains statistical buckets rather than individual records. chain_tail must still be present."
+    }
+  }
+}

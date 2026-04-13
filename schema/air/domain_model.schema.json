@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpk.io/specs/air/v1.1/domain_model.schema.json",
+  "title": "Domain Model",
+  "description": "The agent's learned understanding of its operational domain -- entities, relationships, edge cases, and calibrated thresholds discovered through experience.",
+  "type": "object",
+  "required": ["air_version", "snapshot_timestamp", "domain"],
+  "properties": {
+    "air_version": { "type": "string" },
+    "snapshot_timestamp": { "type": "string", "format": "date-time" },
+    "domain": {
+      "type": "string",
+      "description": "Primary domain this agent operates in.",
+      "examples": ["fraud-detection", "healthcare-prior-auth", "customer-support", "financial-advisory"]
+    },
+    "entities": {
+      "type": "array",
+      "description": "Key entities the agent learned to recognize and reason about.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "confidence"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "observation_count": { "type": "integer" },
+          "attributes": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "learned_thresholds": {
+      "type": "array",
+      "description": "Thresholds the agent calibrated through experience, beyond default configuration.",
+      "items": {
+        "type": "object",
+        "required": ["parameter", "learned_value", "default_value", "confidence"],
+        "properties": {
+          "parameter": { "type": "string" },
+          "learned_value": {},
+          "default_value": {},
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "sample_size": { "type": "integer" },
+          "rationale": { "type": "string" }
+        }
+      }
+    },
+    "edge_cases": {
+      "type": "array",
+      "description": "Unusual scenarios the agent has encountered and learned to handle.",
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "resolution"],
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "resolution": { "type": "string" },
+          "frequency": { "type": "integer" },
+          "first_observed": { "type": "string", "format": "date-time" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "terminology": {
+      "type": "object",
+      "description": "Domain-specific terms the agent learned, separate from org vocabulary.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "definition": { "type": "string" },
+          "context": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "air_version": "1.1",
+  "snapshot_timestamp": "2026-04-12T00:00:00Z",
+  "domain": "fraud-detection",
+  "entities": [
+    {
+      "id": "ent-001",
+      "name": "high-value-transaction",
+      "description": "Any single transaction exceeding $10,000 in value, requiring mandatory compliance review",
+      "confidence": 0.97,
+      "observation_count": 8420,
+      "attributes": ["amount", "merchant_category", "member_tenure", "geo_location"]
+    },
+    {
+      "id": "ent-002",
+      "name": "velocity-spike",
+      "description": "Three or more transactions from the same member within a 5-minute window",
+      "confidence": 0.93,
+      "observation_count": 1247,
+      "attributes": ["transaction_count", "time_window", "total_amount", "unique_merchants"]
+    },
+    {
+      "id": "ent-003",
+      "name": "cross-border-transfer",
+      "description": "Transaction where merchant country differs from member's home country",
+      "confidence": 0.91,
+      "observation_count": 3182,
+      "attributes": ["origin_country", "merchant_country", "currency_pair", "amount"]
+    },
+    {
+      "id": "ent-004",
+      "name": "dormant-account-reactivation",
+      "description": "First transaction on an account with no activity for 90+ days",
+      "confidence": 0.88,
+      "observation_count": 412,
+      "attributes": ["dormancy_period_days", "transaction_amount", "merchant_risk_category"]
+    }
+  ],
+  "learned_thresholds": [
+    {
+      "parameter": "high_value_amount_usd",
+      "learned_value": 8500,
+      "default_value": 10000,
+      "confidence": 0.92,
+      "sample_size": 8420,
+      "rationale": "Fraudulent transactions cluster between $8,500-$9,999 to avoid the $10k reporting threshold. Lowering the review trigger catches 23% more confirmed fraud."
+    },
+    {
+      "parameter": "velocity_window_seconds",
+      "learned_value": 180,
+      "default_value": 300,
+      "confidence": 0.89,
+      "sample_size": 1247,
+      "rationale": "Legitimate rapid purchases (e.g. gas + convenience store) typically complete within 5 minutes. Fraudulent velocity spikes cluster under 3 minutes."
+    },
+    {
+      "parameter": "friday_afternoon_confidence_boost",
+      "learned_value": 0.15,
+      "default_value": 0.0,
+      "confidence": 0.91,
+      "sample_size": 312,
+      "rationale": "Friday 14:00-18:00 flags have 3x false-positive rate. Boosting confidence threshold by 0.15 during this window reduces false positives without missing true fraud."
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "ec-001",
+      "description": "Legitimate high-frequency trading bot accounts generate 50+ transactions per minute, triggering velocity alerts on every batch",
+      "resolution": "Exempt accounts tagged as 'automated-trading' from velocity checks; apply dedicated algo-trading policy instead",
+      "frequency": 34,
+      "first_observed": "2025-06-12T14:22:00Z",
+      "confidence": 0.95
+    },
+    {
+      "id": "ec-002",
+      "description": "Travel notification not propagated: member filed travel notice but geo-mismatch still triggered due to 24h sync delay with upstream system",
+      "resolution": "Buffer geo-mismatch alerts for accounts with active travel notices by 30 minutes; check upstream sync status before escalating",
+      "frequency": 87,
+      "first_observed": "2025-04-18T09:05:00Z",
+      "confidence": 0.93
+    },
+    {
+      "id": "ec-003",
+      "description": "Subscription renewals from foreign SaaS providers appear as cross-border transactions, generating monthly false positives for the same merchants",
+      "resolution": "Build recurring-merchant allowlist from 3+ consecutive identical transactions; suppress geo-alerts for allowlisted merchants",
+      "frequency": 216,
+      "first_observed": "2025-03-01T00:00:00Z",
+      "confidence": 0.97
+    }
+  ],
+  "terminology": {
+    "velocity_spike": {
+      "definition": "Three or more transactions from one account within a configurable time window (default 5 minutes)",
+      "context": "Internal term used by the fraud detection team; not used in member communications",
+      "confidence": 0.99
+    },
+    "dormant_reactivation": {
+      "definition": "First transaction on an account that has had zero activity for 90 or more consecutive days",
+      "context": "Triggers enhanced verification flow regardless of transaction amount",
+      "confidence": 0.96
+    },
+    "MCC": {
+      "definition": "Merchant Category Code -- ISO 18245 four-digit code classifying the type of goods or services a merchant provides",
+      "context": "Used to classify transaction risk; MCC 5411 (grocery) is lowest risk, MCC 6051 (quasi-cash) is highest",
+      "confidence": 0.99
+    }
+  }
+}

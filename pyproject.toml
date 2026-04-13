@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentpk"
-version = "0.3.2"
+version = "0.3.3"
 description = "Package AI agents into portable .agent files"
 readme = "README.md"
 license = "MIT"
@@ -55,6 +55,7 @@ testpaths = ["tests"]
 dev = [
     "pytest",
     "pytest-cov",
+    "jsonschema>=4.0",
 ]
 api = [
     "fastapi>=0.110.0",

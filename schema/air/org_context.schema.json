@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpk.io/specs/air/v1.0/org_context.schema.json",
+  "title": "Organizational Context",
+  "description": "Institutional knowledge: vocabulary, values, domain anchors, and escalation patterns.",
+  "type": "object",
+  "required": ["air_version", "org_id"],
+  "properties": {
+    "air_version": { "type": "string" },
+    "org_id": { "type": "string" },
+    "values": { "type": "array", "items": { "type": "string" } },
+    "vocabulary": {
+      "type": "object",
+      "properties": {
+        "preferred": { "type": "object", "additionalProperties": { "type": "string" } },
+        "prohibited": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "domain_anchors": { "type": "array", "items": { "type": "string" } },
+    "escalation_patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["trigger", "action"],
+        "properties": {
+          "trigger": { "type": "string" },
+          "action": { "type": "string" },
+          "priority": { "type": "string", "enum": ["low", "medium", "high", "critical"] }
+        }
+      }
+    }
+  }
+}
