@@ -57,7 +57,7 @@ class TestFraudDetectorWithMemory:
 
     def test_air_json_version(self) -> None:
         air = json.loads(_read_packed_file(self.result.output_path, "intelligence/air.json"))
-        assert air["air_version"] == "1.0"
+        assert air["air_version"] == "1.1"
 
     def test_air_json_has_fingerprint_component(self) -> None:
         air = json.loads(_read_packed_file(self.result.output_path, "intelligence/air.json"))
@@ -84,7 +84,7 @@ class TestHealthcareStrictRedaction:
 
     def test_components_fingerprint_and_org_context(self) -> None:
         air = json.loads(_read_packed_file(self.result.output_path, "intelligence/air.json"))
-        assert sorted(air["components"]) == ["fingerprint", "org_context"]
+        assert sorted(air["components"]) == ["compliance_state", "fingerprint", "org_context"]
 
     def test_no_audit_file(self) -> None:
         assert not _packed_file_exists(self.result.output_path, "intelligence/audit.jsonl")

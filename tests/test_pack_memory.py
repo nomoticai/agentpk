@@ -118,10 +118,11 @@ class TestAirBundleViaCLI:
 
         manifest = _read_packed_manifest(agent_files[0])
         air = manifest["_package"]["air"]
-        assert air["air_version"] == "1.0"
+        assert air["air_version"] == "1.1"
         assert "stub" in air.get("_status", "")
         assert sorted(air["components"]) == [
-            "audit", "fingerprint", "knowledge_state", "org_context", "trust"
+            "audit", "compliance_state", "domain_model", "fingerprint",
+            "interaction_patterns", "knowledge_state", "org_context", "trust"
         ]
 
     def test_memory_components_subset(self, tmp_path: Path) -> None:
